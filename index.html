@@ -55,12 +55,16 @@
   .detail-panel::-webkit-scrollbar-track { background: transparent; }
   .detail-panel::-webkit-scrollbar-thumb { background: rgba(201,169,110,0.2); border-radius: 2px; }
 
-  .detail-photo-wrap { width: 100%; height: 240px; overflow: hidden; position: relative; background: rgba(var(--bg-rgb), 0.8); }
-  .detail-photo { width: 100%; height: 100%; object-fit: cover; object-position: top center; filter: sepia(0.25) contrast(1.05) brightness(0.95); opacity: 0; transition: opacity 0.6s ease; }
-  .detail-photo.is-portrait { object-fit: contain; object-position: center; background: rgba(var(--bg-rgb), 1); padding: 8px 0; }
+  .detail-photo-wrap { width: 100%; height: 260px; overflow: hidden; position: relative; background: #151310; }
+  .detail-photo { width: 100%; height: 100%; object-fit: cover; object-position: top center; filter: sepia(0.15) contrast(1.05); opacity: 0; transition: opacity 0.6s ease; display: block; }
+  .detail-photo.is-person { object-fit: contain; object-position: center top; background: #0e0c0a; }
   .detail-photo.loaded { opacity: 1; }
-  .detail-photo-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-  .detail-photo-fallback svg { width: 60px; height: 60px; opacity: 0.12; }
+  .detail-photo-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
+  .detail-photo-fallback svg { width: 50px; height: 50px; opacity: 0.12; }
+  .detail-photo-fallback .loading-text { font-family: 'Source Serif 4', serif; font-size: 10px; color: var(--accent-faint); letter-spacing: 2px; text-transform: uppercase; opacity: 0.5; }
+  .detail-photo-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: linear-gradient(transparent, rgba(var(--bg-rgb), 1)); pointer-events: none; }
+  .detail-location { font-family: 'Source Serif 4', serif; font-size: 11px; color: var(--accent-dim); letter-spacing: 1px; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+  .detail-location::before { content: '◆'; font-size: 6px; color: var(--accent); }
   .detail-photo-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: linear-gradient(transparent, rgba(var(--bg-rgb), 1)); pointer-events: none; }
   .detail-close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; background: rgba(var(--bg-rgb),0.7); border: 1px solid rgba(201,169,110,0.3); color: var(--accent); font-size: 18px; cursor: pointer; z-index: 5; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; line-height: 1; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border-radius: 4px; }
   .detail-close:hover { background: rgba(201,169,110,0.2); border-color: var(--accent); }
@@ -168,8 +172,9 @@
     <div class="detail-photo-wrap">
       <div class="detail-photo-fallback" id="detailFallback">
         <svg viewBox="0 0 100 100"><path d="M50 5 L61 39 L97 39 L68 60 L79 95 L50 73 L21 95 L32 60 L3 39 L39 39 Z" fill="currentColor" style="color:var(--accent)"/></svg>
+        <span class="loading-text" id="loadingText">Loading photo...</span>
       </div>
-      <img class="detail-photo" id="detailPhoto" alt="" crossorigin="anonymous">
+      <img class="detail-photo" id="detailPhoto" alt="" referrerpolicy="no-referrer">
       <div class="detail-photo-gradient"></div>
       <button class="detail-close" id="detailClose">✕</button>
     </div>
@@ -179,6 +184,7 @@
       <div class="detail-name-latin" id="detailNameLatin"></div>
       <div class="detail-years" id="detailYears"></div>
       <div class="detail-role" id="detailRole"></div>
+      <div class="detail-location" id="detailLocation" style="display:none"></div>
     </div>
     <div class="detail-body">
       <div class="lang-label">English</div>
@@ -199,103 +205,123 @@
 <script type="module">
 import * as THREE from 'three';
 
-// Direct portrait photo URLs from Wikimedia Commons (public domain)
-const PHOTOS = {
-  benMhidi: "https://upload.wikimedia.org/wikipedia/commons/2/2b/Larbi_Ben_M%27hidi_-_1957.JPG",
-  benBoulaid: "https://upload.wikimedia.org/wikipedia/commons/c/c7/Mostefa_Ben_Boula%C3%AFd.jpg",
-  didouche: "https://upload.wikimedia.org/wikipedia/commons/3/35/Didouche_Mourad_2.jpg",
-  krim: "https://upload.wikimedia.org/wikipedia/commons/d/d0/Krim_Belkacem.jpg",
-  bitat: "https://upload.wikimedia.org/wikipedia/commons/c/c3/Rabah_Bitat.jpg",
-  boudiaf: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Mohamed_Boudiaf.jpg",
-  aitAhmed: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Hocine_A%C3%AFt_Ahmed.jpg",
-  benBella: "https://upload.wikimedia.org/wikipedia/commons/d/d8/Ahmed_Ben_Bella.jpg",
-  bouhired: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Djamila_Bouhired.jpg",
-  hassiba: "https://upload.wikimedia.org/wikipedia/commons/1/13/Hassiba_Ben_Bouali.jpg",
-  amirouche: "https://upload.wikimedia.org/wikipedia/commons/9/92/Colonel_Amirouche.jpg",
-  lotfi: "https://upload.wikimedia.org/wikipedia/commons/8/82/Colonel_Lotfi.jpg",
-  zighoud: "https://upload.wikimedia.org/wikipedia/commons/a/aa/Zighoud_Youcef.jpg",
-  benkhedda: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Benyoucef_Benkhedda.jpg",
-  battleAlgiers: "https://upload.wikimedia.org/wikipedia/commons/6/64/Casbah-cache-Ali-lapointe.jpg",
-  soummam: "https://upload.wikimedia.org/wikipedia/commons/1/19/Six_chefs_FLN_-_1954.jpg",
-  nov1: "https://upload.wikimedia.org/wikipedia/commons/1/19/Six_chefs_FLN_-_1954.jpg",
-  jul5: "https://upload.wikimedia.org/wikipedia/commons/6/6c/Drapeau_de_l%27Alg%C3%A9rie.svg",
-  dec11: "https://upload.wikimedia.org/wikipedia/commons/f/f9/Manifestations_du_11_d%C3%A9cembre_1960.jpg",
-};
+// Photo cache + Wikipedia API loader (primary method - no hotlink issues)
+const photoCache = {};
+async function fetchPhoto(wikiSlug, size) {
+  if (photoCache[wikiSlug]) return photoCache[wikiSlug];
+  try {
+    const sz = size || 600;
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiSlug)}`);
+    const d = await r.json();
+    // Use original image for better quality, or thumbnail
+    const url = d.originalimage?.source || d.thumbnail?.source || null;
+    if (url) photoCache[wikiSlug] = url;
+    return url;
+  } catch(e) {
+    // Fallback: try French Wikipedia (better coverage for Algerian revolution)
+    try {
+      const r2 = await fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiSlug)}`);
+      const d2 = await r2.json();
+      const url2 = d2.originalimage?.source || d2.thumbnail?.source || null;
+      if (url2) photoCache[wikiSlug] = url2;
+      return url2;
+    } catch(e2) { return null; }
+  }
+}
 
 const CARDS = [
-  { name:"لعربي بن مهيدي", latin:"Larbi Ben M'hidi", year:"1923–1957", role:"Leader of Zone V (Oran)", color:"#8B4513", type:"HISTORIC LEADER", portrait:true, photo:PHOTOS.benMhidi,
+  { name:"لعربي بن مهيدي", latin:"Larbi Ben M'hidi", year:"1923–1957", role:"Leader of Zone V (Oran)", color:"#8B4513", type:"HISTORIC LEADER", isPerson:true,
+    wiki:"Larbi_Ben_M'hidi",
     summary:"One of the nine historic founders of the FLN and leader of Zone V. He commanded urban guerrilla operations during the Battle of Algiers. Captured in February 1957, he was tortured and assassinated by the French military who staged his death as a suicide. His defiance became legendary.",
     summaryAr:"أحد المؤسسين التسعة التاريخيين لجبهة التحرير الوطني وقائد المنطقة الخامسة. قاد عمليات حرب العصابات الحضرية خلال معركة الجزائر. اعتُقل في فبراير 1957، وتعرض للتعذيب ثم اغتيل من طرف الجيش الفرنسي الذي زيّف موته على أنه انتحار. أصبح تحديه أسطورياً.",
     quote:"أعطونا طائراتكم ودباباتكم نعطيكم قفافنا" },
-  { name:"مصطفى بن بولعيد", latin:"Mostefa Ben Boulaïd", year:"1917–1956", role:"Leader of Zone I (Aurès)", color:"#6B3410", type:"HISTORIC LEADER", portrait:true, photo:PHOTOS.benBoulaid,
+  { name:"مصطفى بن بولعيد", latin:"Mostefa Ben Boulaïd", year:"1917–1956", role:"Leader of Zone I (Aurès)", color:"#6B3410", type:"HISTORIC LEADER", isPerson:true,
+    wiki:"Mostefa_Ben_Boulaïd",
     summary:"Known as the 'Father of the Revolution.' A WWII veteran, he sold his properties to buy the first weapons for November 1st, 1954. After escaping prison, he was killed on March 22, 1956 by a booby-trapped radio planted by French intelligence.",
     summaryAr:"يُلقب بـ'أبو الثورة'. محارب في الحرب العالمية الثانية، باع ممتلكاته لشراء أول أسلحة الثورة. بعد هروبه من السجن، استشهد في 22 مارس 1956 بجهاز راديو مفخخ زرعته المخابرات الفرنسية.",
     quote:"نموت ونحيا ونموت حتى تحيا الجزائر" },
-  { name:"ديدوش مراد", latin:"Didouche Mourad", year:"1927–1955", role:"Leader of Zone II (North Constantine)", color:"#4A5530", type:"HISTORIC LEADER", portrait:true, photo:PHOTOS.didouche,
+  { name:"ديدوش مراد", latin:"Didouche Mourad", year:"1927–1955", role:"Leader of Zone II (North Constantine)", color:"#4A5530", type:"HISTORIC LEADER", isPerson:true,
+    wiki:"Didouche_Mourad",
     summary:"The youngest of the nine historic leaders. He played a key role in drafting the November 1st Declaration. He fell in battle on January 18, 1955 — the first of the nine to die in combat, at 27 years old.",
     summaryAr:"أصغر القادة التاريخيين التسعة. لعب دوراً محورياً في صياغة بيان أول نوفمبر. استشهد في المعركة يوم 18 جانفي 1955 — أول القادة التسعة سقوطاً في الميدان، عن عمر 27 سنة.",
     quote:"نحن ثوار قمنا لنحيا فلا بد أن نمضي في طريقنا" },
-  { name:"كريم بلقاسم", latin:"Krim Belkacem", year:"1922–1970", role:"Leader of Zone III (Kabylie)", color:"#3E4A3A", type:"HISTORIC LEADER", portrait:true, photo:PHOTOS.krim,
+  { name:"كريم بلقاسم", latin:"Krim Belkacem", year:"1922–1970", role:"Leader of Zone III (Kabylie)", color:"#3E4A3A", type:"HISTORIC LEADER", isPerson:true,
+    wiki:"Krim_Belkacem",
     summary:"A guerrilla fighter since 1947. He transformed Kabylie into a fortress of resistance and became the chief negotiator and signatory of the Évian Accords in March 1962. Assassinated in Frankfurt in 1970.",
     summaryAr:"مقاتل عصابات منذ 1947. حوّل القبائل إلى حصن للمقاومة وأصبح المفاوض الرئيسي والموقّع على اتفاقيات إيفيان في مارس 1962. اغتيل في فرانكفورت عام 1970.",
     quote:"الحرية لا تُعطى بل تُنتزع انتزاعاً" },
-  { name:"رابح بيطاط", latin:"Rabah Bitat", year:"1925–2000", role:"Leader of Zone IV (Algiers)", color:"#4A3B2A", type:"HISTORIC LEADER", portrait:true, photo:PHOTOS.bitat,
+  { name:"رابح بيطاط", latin:"Rabah Bitat", year:"1925–2000", role:"Leader of Zone IV (Algiers)", color:"#4A3B2A", type:"HISTORIC LEADER", isPerson:true,
+    wiki:"Rabah_Bitat",
     summary:"Leader of Zone IV covering Algiers. Arrested in March 1955 as the first historic leader captured. After independence he served as President of the National Assembly.",
     summaryAr:"قائد المنطقة الرابعة. اعتُقل في مارس 1955 كأول قائد تاريخي يُقبض عليه. بعد الاستقلال شغل منصب رئيس المجلس الشعبي الوطني.",
     quote:"نحن لم نختر الحرب، الاستعمار هو من فرضها علينا" },
-  { name:"محمد بوضياف", latin:"Mohamed Boudiaf", year:"1919–1992", role:"Co-founder of FLN", color:"#5C4033", type:"HISTORIC LEADER", portrait:true, photo:PHOTOS.boudiaf,
+  { name:"محمد بوضياف", latin:"Mohamed Boudiaf", year:"1919–1992", role:"Co-founder of FLN", color:"#5C4033", type:"HISTORIC LEADER", isPerson:true,
+    wiki:"Mohamed_Boudiaf",
     summary:"Principal architect of the CRUA. He coordinated the November 1st attacks. Recalled as President in 1992, he was assassinated during a televised address in Annaba — 166 days into his presidency.",
     summaryAr:"المهندس الرئيسي للجنة الثورية للوحدة والعمل. نسّق هجمات أول نوفمبر. استُدعي كرئيس للدولة عام 1992 واغتيل خلال خطاب متلفز في عنابة — بعد 166 يوماً فقط من توليه الرئاسة.",
     quote:"لا يمكن للاستعمار أن يستمر، ولا يمكن للشعب أن يُهزم" },
-  { name:"حسين آيت أحمد", latin:"Hocine Aït Ahmed", year:"1926–2015", role:"External delegation", color:"#3D4A3E", type:"HISTORIC LEADER", portrait:true, photo:PHOTOS.aitAhmed,
+  { name:"حسين آيت أحمد", latin:"Hocine Aït Ahmed", year:"1926–2015", role:"External delegation", color:"#3D4A3E", type:"HISTORIC LEADER", isPerson:true,
+    wiki:"Hocine_Aït_Ahmed",
     summary:"Joined the independence movement at 16. He secured international support at the United Nations. After independence he founded the FFS, Algeria's oldest opposition party.",
     summaryAr:"انضم لحركة الاستقلال في سن 16. أمّن الدعم الدولي في الأمم المتحدة. بعد الاستقلال أسس حزب القوى الاشتراكية، أقدم حزب معارض في الجزائر.",
     quote:"الديمقراطية هي الضمان الوحيد لوحدة الأمة" },
-  { name:"أحمد بن بلة", latin:"Ahmed Ben Bella", year:"1916–2012", role:"External delegation", color:"#4E3524", type:"HISTORIC LEADER", portrait:true, photo:PHOTOS.benBella,
+  { name:"أحمد بن بلة", latin:"Ahmed Ben Bella", year:"1916–2012", role:"External delegation", color:"#4E3524", type:"HISTORIC LEADER", isPerson:true,
+    wiki:"Ahmed_Ben_Bella",
     summary:"Decorated WWII veteran who became the chief arms procurer for the revolution. He became Algeria's first President in 1963 before being overthrown in a 1965 coup.",
     summaryAr:"محارب مُوسّم في الحرب العالمية الثانية أصبح المسؤول الرئيسي عن تأمين الأسلحة للثورة. أصبح أول رئيس للجزائر المستقلة عام 1963 قبل الإطاحة به في انقلاب 1965.",
     quote:"نحن جيل التضحية لتعيش الأجيال القادمة حرة" },
-  { name:"جميلة بوحيرد", latin:"Djamila Bouhired", year:"Born 1935", role:"Revolutionary heroine", color:"#6E4B3A", type:"REVOLUTIONARY HEROINE", portrait:true, photo:PHOTOS.bouhired,
+  { name:"جميلة بوحيرد", latin:"Djamila Bouhired", year:"Born 1935", role:"Revolutionary heroine", color:"#6E4B3A", type:"REVOLUTIONARY HEROINE", isPerson:true,
+    wiki:"Djamila_Bouhired",
     summary:"The most iconic female fighter. She endured severe torture but revealed nothing. Sentenced to death, an international solidarity campaign saved her life. She became a global symbol of anti-colonial resistance.",
     summaryAr:"أشهر مقاتلة في الثورة. تحملت تعذيباً شديداً لكنها لم تُفصح عن أي معلومة. حُكم عليها بالإعدام لكن حملة تضامن دولية أنقذت حياتها. أصبحت رمزاً عالمياً لمقاومة الاستعمار.",
     quote:"المرأة الجزائرية لم تكن خلف الثورة بل في قلبها" },
-  { name:"حسيبة بن بوعلي", latin:"Hassiba Ben Bouali", year:"1938–1957", role:"Battle of Algiers", color:"#4D5A40", type:"REVOLUTIONARY HEROINE", portrait:true, photo:PHOTOS.hassiba,
+  { name:"حسيبة بن بوعلي", latin:"Hassiba Ben Bouali", year:"1938–1957", role:"Battle of Algiers", color:"#4D5A40", type:"REVOLUTIONARY HEROINE", isPerson:true,
+    wiki:"Hassiba_Ben_Bouali",
     summary:"A student who joined the armed struggle in the Casbah. On October 8, 1957, French paratroopers dynamited their hideout, killing Hassiba, Ali La Pointe, and Petit Omar. She was 19 years old.",
     summaryAr:"طالبة انضمت للكفاح المسلح في القصبة. في 8 أكتوبر 1957 فجّر المظليون الفرنسيون مخبأهم فاستشهدت حسيبة وعلي لابوانت وعمر الصغير. كان عمرها 19 سنة فقط.",
     quote:"الموت في سبيل الوطن حياة لا تنتهي" },
-  { name:"معركة الجزائر", latin:"Battle of Algiers", year:"1956–1957", role:"Urban guerrilla warfare", color:"#3A3A3A", type:"KEY EVENT", portrait:false, photo:PHOTOS.battleAlgiers,
+  { name:"معركة الجزائر", latin:"Battle of Algiers", year:"1956–1957", role:"Urban guerrilla warfare", color:"#3A3A3A", type:"KEY EVENT", isPerson:false,
+    wiki:"Battle_of_Algiers_(1957)", location:"Casbah of Algiers, Algeria — القصبة، الجزائر العاصمة",
     summary:"A pivotal urban guerrilla campaign. France deployed the 10th Parachute Division with full police powers, leading to systematic torture and disappearances. France won tactically but exposed the moral bankruptcy of colonialism.",
     summaryAr:"حملة حرب عصابات حضرية محورية. نشرت فرنسا فرقة المظليين العاشرة بصلاحيات مطلقة مما أدى إلى التعذيب المنهجي والاختفاء القسري. انتصرت فرنسا عسكرياً لكن كشفت للعالم الإفلاس الأخلاقي للاستعمار.",
     quote:"معركة الجزائر خسرناها عسكريا لكن ربحناها سياسيا" },
-  { name:"مؤتمر الصومام", latin:"Soummam Congress", year:"August 1956", role:"Organizational structure", color:"#3E5040", type:"KEY EVENT", portrait:false, photo:PHOTOS.soummam,
+  { name:"مؤتمر الصومام", latin:"Soummam Congress", year:"August 1956", role:"Organizational structure", color:"#3E5040", type:"KEY EVENT", isPerson:false,
+    wiki:"Soummam_conference", location:"Ifri Valley, Akbou, Kabylie — وادي إيفري، أقبو، القبائل",
     summary:"The foundational congress held August 20, 1956 in the Ifri Valley. It created the CNRA and CCE, divided Algeria into six Wilayas, and established the primacy of political over military leadership.",
     summaryAr:"المؤتمر التأسيسي الذي انعقد في 20 أوت 1956 في وادي إيفري. أنشأ المجلس الوطني للثورة ولجنة التنسيق والتنفيذ وقسّم الجزائر إلى ست ولايات وأرسى مبدأ أولوية السياسي على العسكري.",
     quote:"أمة بدون تنظيم كجيش بدون قيادة" },
-  { name:"١ نوفمبر ١٩٥٤", latin:"1 November 1954", year:"Toussaint Rouge", role:"Start of the Revolution", color:"#8B2500", type:"KEY EVENT", portrait:false, photo:PHOTOS.nov1,
+  { name:"١ نوفمبر ١٩٥٤", latin:"1 November 1954", year:"Toussaint Rouge", role:"Start of the Revolution", color:"#8B2500", type:"KEY EVENT", isPerson:false,
+    wiki:"Toussaint_Rouge", location:"Across all of Algeria — عبر كامل التراب الوطني الجزائري",
     summary:"The FLN launched approximately 70 coordinated attacks across Algeria. The Declaration of November 1st called for a sovereign, democratic Algerian state. The revolution had begun.",
     summaryAr:"شنّت جبهة التحرير الوطني حوالي 70 هجوماً منسقاً عبر الجزائر. دعا بيان أول نوفمبر لدولة جزائرية ذات سيادة وديمقراطية. بدأت الثورة.",
     quote:"من أجل الجزائر نحيا ومن أجل الجزائر نموت" },
-  { name:"٥ جويلية ١٩٦٢", latin:"5 July 1962", year:"Independence Day", role:"Algeria is free", color:"#006233", type:"KEY EVENT", portrait:false, photo:PHOTOS.jul5,
+  { name:"٥ جويلية ١٩٦٢", latin:"5 July 1962", year:"Independence Day", role:"Algeria is free", color:"#006233", type:"KEY EVENT", isPerson:false,
+    wiki:"Algerian_War", location:"All of Algeria — كامل الجزائر",
     summary:"After 99.72% voted for independence, Algeria became sovereign on July 5, 1962 — 132 years after France invaded on the same date in 1830. The revolution cost an estimated 1.5 million lives.",
     summaryAr:"بعد تصويت 99.72% لصالح الاستقلال أصبحت الجزائر دولة ذات سيادة في 5 جويلية 1962 — بعد 132 سنة من الاحتلال. كلّفت الثورة ما يقارب مليون ونصف شهيد.",
     quote:"عاشت الجزائر حرة مستقلة" },
-  { name:"مظاهرات ١١ ديسمبر", latin:"11 December 1960", year:"Popular uprising", role:"Mass demonstrations", color:"#4A4030", type:"KEY EVENT", portrait:false, photo:PHOTOS.dec11,
+  { name:"مظاهرات ١١ ديسمبر", latin:"11 December 1960", year:"Popular uprising", role:"Mass demonstrations", color:"#4A4030", type:"KEY EVENT", isPerson:false,
+    wiki:"December_1960_demonstrations_in_French_Algeria", location:"Algiers, Oran, Constantine — الجزائر، وهران، قسنطينة",
     summary:"Massive demonstrations erupted when de Gaulle visited Algeria. French forces opened fire on unarmed crowds, killing hundreds. The images shattered France's narrative and accelerated international recognition.",
     summaryAr:"اندلعت مظاهرات ضخمة عند زيارة ديغول للجزائر. فتحت القوات الفرنسية النار على حشود عزلاء فقتلت المئات. حطّمت الصور رواية فرنسا وسرّعت الاعتراف الدولي بحق تقرير المصير.",
     quote:"الشعب يريد الاستقلال" },
-  { name:"العقيد عميروش", latin:"Colonel Amirouche", year:"1926–1959", role:"Commander of Wilaya III", color:"#3B4A38", type:"MILITARY COMMANDER", portrait:true, photo:PHOTOS.amirouche,
+  { name:"العقيد عميروش", latin:"Colonel Amirouche", year:"1926–1959", role:"Commander of Wilaya III", color:"#3B4A38", type:"MILITARY COMMANDER", isPerson:true,
+    wiki:"Amirouche_Aït_Hamouda",
     summary:"One of the most feared commanders. He transformed Wilaya III into a formidable resistance zone with schools and hospitals in liberated areas. Killed in an ambush on March 29, 1959 at age 33.",
     summaryAr:"أحد أكثر القادة رهبة. حوّل الولاية الثالثة إلى منطقة مقاومة قوية وأنشأ مدارس ومستشفيات في المناطق المحررة. استشهد في كمين يوم 29 مارس 1959 عن عمر 33 سنة.",
     quote:"إن لم ننتصر اليوم فسننتصر غداً" },
-  { name:"العقيد لطفي", latin:"Colonel Lotfi", year:"1934–1960", role:"Commander of Wilaya V", color:"#4A3828", type:"MILITARY COMMANDER", portrait:true, photo:PHOTOS.lotfi,
+  { name:"العقيد لطفي", latin:"Colonel Lotfi", year:"1934–1960", role:"Commander of Wilaya V", color:"#4A3828", type:"MILITARY COMMANDER", isPerson:true,
+    wiki:"Colonel_Lotfi",
     summary:"Born Benali Boudghene, he took command of Wilaya V at just 23 — the youngest wilaya commander. Killed in combat on March 27, 1960 near the Moroccan border.",
     summaryAr:"واسمه الحقيقي بنعلي بودغن. تولى قيادة الولاية الخامسة في سن 23 — أصغر قائد ولاية. استشهد في المعركة يوم 27 مارس 1960 قرب الحدود المغربية.",
     quote:"الثورة أمانة في أعناقنا حتى النصر أو الشهادة" },
-  { name:"زيغود يوسف", latin:"Zighoud Youcef", year:"1921–1956", role:"Commander after Didouche", color:"#5C4A3A", type:"MILITARY COMMANDER", portrait:true, photo:PHOTOS.zighoud,
+  { name:"زيغود يوسف", latin:"Zighoud Youcef", year:"1921–1956", role:"Commander after Didouche", color:"#5C4A3A", type:"MILITARY COMMANDER", isPerson:true,
+    wiki:"Zighoud_Youcef",
     summary:"He masterminded the Skikda offensive of August 20, 1955. French retaliation killed an estimated 12,000 Algerians — the war's turning point. Killed in battle September 25, 1956.",
     summaryAr:"دبّر هجوم سكيكدة في 20 أوت 1955. أسفر الرد الفرنسي عن مقتل نحو 12,000 جزائري — نقطة تحول الحرب. استشهد في المعركة يوم 25 سبتمبر 1956.",
     quote:"بعد ٢٠ أوت لن يكون هناك طريق للعودة" },
-  { name:"بن يوسف بن خدة", latin:"Benyoucef Benkhedda", year:"1920–2003", role:"President of GPRA", color:"#3A4A4A", type:"POLITICAL LEADER", portrait:true, photo:PHOTOS.benkhedda,
+  { name:"بن يوسف بن خدة", latin:"Benyoucef Benkhedda", year:"1920–2003", role:"President of GPRA", color:"#3A4A4A", type:"POLITICAL LEADER", isPerson:true,
+    wiki:"Benyoucef_Benkhedda",
     summary:"Last President of the GPRA. He oversaw the Évian negotiations that secured Algeria's independence. After independence he was sidelined but spent his life documenting the revolution's true history.",
     summaryAr:"آخر رئيس للحكومة المؤقتة. أشرف على مفاوضات إيفيان التي أمّنت استقلال الجزائر. بعد الاستقلال تم تهميشه لكنه أمضى حياته يوثّق التاريخ الحقيقي للثورة.",
     quote:"التاريخ أمانة يجب أن يُروى كما كان لا كما نريده أن يكون" },
@@ -333,8 +359,8 @@ const ray=new THREE.Raycaster(),mV=new THREE.Vector2();
 let panelOpen=false,fTarget=null,fProg=0,fStart=new THREE.Vector3(),fEnd=new THREE.Vector3(),cStart={x:0,y:0},wasDrag=false;
 const dOv=document.getElementById('detailOverlay'),dCl=document.getElementById('detailClose'),dBk=document.getElementById('detailBackdrop');
 
-function showDetail(i){
-  const c=CARDS[i],photo=document.getElementById('detailPhoto');
+async function showDetail(i){
+  const c=CARDS[i],photo=document.getElementById('detailPhoto'),loadTxt=document.getElementById('loadingText'),locEl=document.getElementById('detailLocation');
   document.getElementById('detailType').textContent=c.type;
   document.getElementById('detailNameAr').textContent=c.name;
   document.getElementById('detailNameLatin').textContent=c.latin;
@@ -344,22 +370,30 @@ function showDetail(i){
   document.getElementById('detailSummaryAr').textContent=c.summaryAr;
   document.getElementById('detailQuote').textContent=`« ${c.quote} »`;
 
-  photo.classList.remove('loaded','is-portrait');
+  // Location for events
+  if(c.location){locEl.textContent=c.location;locEl.style.display='flex'}
+  else{locEl.style.display='none'}
+
+  // Reset photo
+  photo.classList.remove('loaded','is-person');
   photo.src='';
-  if(c.portrait) photo.classList.add('is-portrait');
+  loadTxt.textContent='Loading photo...';
+  if(c.isPerson) photo.classList.add('is-person');
 
   dOv.classList.add('visible');
   document.body.classList.add('panel-open');
   panelOpen=true;
 
-  if(c.photo){
-    photo.src=c.photo;
-    photo.onload=()=>photo.classList.add('loaded');
-    photo.onerror=()=>{
-      // Fallback: try Wikipedia REST API
-      fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${c.latin.replace(/ /g,'_').replace(/'/g,"%27")}`)
-        .then(r=>r.json()).then(d=>{if(d.thumbnail){photo.src=d.thumbnail.source;photo.onload=()=>photo.classList.add('loaded')}}).catch(()=>{});
-    };
+  // Fetch photo from Wikipedia API
+  if(c.wiki){
+    const url=await fetchPhoto(c.wiki);
+    if(url){
+      photo.src=url;
+      photo.onload=()=>{photo.classList.add('loaded');loadTxt.textContent=''};
+      photo.onerror=()=>{loadTxt.textContent='Photo unavailable'};
+    } else {
+      loadTxt.textContent='Photo unavailable';
+    }
   }
 }
 
