@@ -1,0 +1,15 @@
+# JetBrains IDE files
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Windows system files
+desktop.ini
+Thumbs.db
+
+# Node modules (if you use them later)
+node_modules/
+
+# Logs
+*.log
