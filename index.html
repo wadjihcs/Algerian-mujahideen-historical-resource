@@ -56,8 +56,8 @@
   .detail-panel::-webkit-scrollbar-thumb { background: rgba(201,169,110,0.2); border-radius: 2px; }
 
   .detail-photo-wrap { width: 100%; height: 260px; overflow: hidden; position: relative; background: #151310; }
-  .detail-photo { width: 100%; height: 100%; object-fit: cover; object-position: top center; filter: sepia(0.15) contrast(1.05); opacity: 0; transition: opacity 0.6s ease; display: block; }
-  .detail-photo.is-person { object-fit: contain; object-position: center top; background: #0e0c0a; }
+  .detail-photo { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; filter: sepia(0.15) contrast(1.05); opacity: 0; transition: opacity 0.6s ease; display: block; }
+  .detail-photo.is-person { object-fit: contain; object-position: center center; background: #0e0c0a; padding: 6px; }
   .detail-photo.loaded { opacity: 1; }
   .detail-photo-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
   .detail-photo-fallback svg { width: 50px; height: 50px; opacity: 0.12; }
@@ -205,28 +205,42 @@
 <script type="module">
 import * as THREE from 'three';
 
-// Photo cache + Wikipedia API loader (primary method - no hotlink issues)
+// Photo cache + Wikipedia API loader
 const photoCache = {};
-async function fetchPhoto(wikiSlug, size) {
+async function fetchPhoto(wikiSlug, altSlugs) {
   if (photoCache[wikiSlug]) return photoCache[wikiSlug];
-  try {
-    const sz = size || 600;
-    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiSlug)}`);
-    const d = await r.json();
-    // Use original image for better quality, or thumbnail
-    const url = d.originalimage?.source || d.thumbnail?.source || null;
-    if (url) photoCache[wikiSlug] = url;
-    return url;
-  } catch(e) {
-    // Fallback: try French Wikipedia (better coverage for Algerian revolution)
+  
+  // Build list of slugs to try: primary + alternatives
+  const slugs = [wikiSlug, ...(altSlugs || [])];
+  
+  for (const slug of slugs) {
+    // Try English Wikipedia
     try {
-      const r2 = await fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiSlug)}`);
-      const d2 = await r2.json();
-      const url2 = d2.originalimage?.source || d2.thumbnail?.source || null;
-      if (url2) photoCache[wikiSlug] = url2;
-      return url2;
-    } catch(e2) { return null; }
+      const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`);
+      if (r.ok) {
+        const d = await r.json();
+        const url = d.originalimage?.source || d.thumbnail?.source;
+        if (url && !url.includes('map') && !url.includes('flag') && !url.includes('logo') && !url.includes('icon')) {
+          photoCache[wikiSlug] = url;
+          return url;
+        }
+      }
+    } catch(e) {}
+    
+    // Try French Wikipedia (better Algerian revolution coverage)
+    try {
+      const r2 = await fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`);
+      if (r2.ok) {
+        const d2 = await r2.json();
+        const url2 = d2.originalimage?.source || d2.thumbnail?.source;
+        if (url2 && !url2.includes('map') && !url2.includes('logo') && !url2.includes('icon')) {
+          photoCache[wikiSlug] = url2;
+          return url2;
+        }
+      }
+    } catch(e2) {}
   }
+  return null;
 }
 
 const CARDS = [
@@ -241,7 +255,7 @@ const CARDS = [
     summaryAr:"يُلقب بـ'أبو الثورة'. محارب في الحرب العالمية الثانية، باع ممتلكاته لشراء أول أسلحة الثورة. بعد هروبه من السجن، استشهد في 22 مارس 1956 بجهاز راديو مفخخ زرعته المخابرات الفرنسية.",
     quote:"نموت ونحيا ونموت حتى تحيا الجزائر" },
   { name:"ديدوش مراد", latin:"Didouche Mourad", year:"1927–1955", role:"Leader of Zone II (North Constantine)", color:"#4A5530", type:"HISTORIC LEADER", isPerson:true,
-    wiki:"Didouche_Mourad",
+    wiki:"Didouche_Mourad", wikiAlt:["Mourad_Didouche"],
     summary:"The youngest of the nine historic leaders. He played a key role in drafting the November 1st Declaration. He fell in battle on January 18, 1955 — the first of the nine to die in combat, at 27 years old.",
     summaryAr:"أصغر القادة التاريخيين التسعة. لعب دوراً محورياً في صياغة بيان أول نوفمبر. استشهد في المعركة يوم 18 جانفي 1955 — أول القادة التسعة سقوطاً في الميدان، عن عمر 27 سنة.",
     quote:"نحن ثوار قمنا لنحيا فلا بد أن نمضي في طريقنا" },
@@ -281,32 +295,32 @@ const CARDS = [
     summaryAr:"طالبة انضمت للكفاح المسلح في القصبة. في 8 أكتوبر 1957 فجّر المظليون الفرنسيون مخبأهم فاستشهدت حسيبة وعلي لابوانت وعمر الصغير. كان عمرها 19 سنة فقط.",
     quote:"الموت في سبيل الوطن حياة لا تنتهي" },
   { name:"معركة الجزائر", latin:"Battle of Algiers", year:"1956–1957", role:"Urban guerrilla warfare", color:"#3A3A3A", type:"KEY EVENT", isPerson:false,
-    wiki:"Battle_of_Algiers_(1957)", location:"Casbah of Algiers, Algeria — القصبة، الجزائر العاصمة",
+    wiki:"Battle_of_Algiers_(1956–1957)", wikiAlt:["Casbah_of_Algiers","The_Battle_of_Algiers"], location:"Casbah of Algiers, Algeria — القصبة، الجزائر العاصمة",
     summary:"A pivotal urban guerrilla campaign. France deployed the 10th Parachute Division with full police powers, leading to systematic torture and disappearances. France won tactically but exposed the moral bankruptcy of colonialism.",
     summaryAr:"حملة حرب عصابات حضرية محورية. نشرت فرنسا فرقة المظليين العاشرة بصلاحيات مطلقة مما أدى إلى التعذيب المنهجي والاختفاء القسري. انتصرت فرنسا عسكرياً لكن كشفت للعالم الإفلاس الأخلاقي للاستعمار.",
     quote:"معركة الجزائر خسرناها عسكريا لكن ربحناها سياسيا" },
   { name:"مؤتمر الصومام", latin:"Soummam Congress", year:"August 1956", role:"Organizational structure", color:"#3E5040", type:"KEY EVENT", isPerson:false,
-    wiki:"Soummam_conference", location:"Ifri Valley, Akbou, Kabylie — وادي إيفري، أقبو، القبائل",
+    wiki:"Soummam_conference", wikiAlt:["Congrès_de_la_Soummam","Ifri_Ouzellaguen"], location:"Ifri Valley, Akbou, Kabylie — وادي إيفري، أقبو، القبائل",
     summary:"The foundational congress held August 20, 1956 in the Ifri Valley. It created the CNRA and CCE, divided Algeria into six Wilayas, and established the primacy of political over military leadership.",
     summaryAr:"المؤتمر التأسيسي الذي انعقد في 20 أوت 1956 في وادي إيفري. أنشأ المجلس الوطني للثورة ولجنة التنسيق والتنفيذ وقسّم الجزائر إلى ست ولايات وأرسى مبدأ أولوية السياسي على العسكري.",
     quote:"أمة بدون تنظيم كجيش بدون قيادة" },
   { name:"١ نوفمبر ١٩٥٤", latin:"1 November 1954", year:"Toussaint Rouge", role:"Start of the Revolution", color:"#8B2500", type:"KEY EVENT", isPerson:false,
-    wiki:"Toussaint_Rouge", location:"Across all of Algeria — عبر كامل التراب الوطني الجزائري",
+    wiki:"Toussaint_Rouge", wikiAlt:["Algerian_War","FLN_proclamation_of_1_November_1954"], location:"Across all of Algeria — عبر كامل التراب الوطني الجزائري",
     summary:"The FLN launched approximately 70 coordinated attacks across Algeria. The Declaration of November 1st called for a sovereign, democratic Algerian state. The revolution had begun.",
     summaryAr:"شنّت جبهة التحرير الوطني حوالي 70 هجوماً منسقاً عبر الجزائر. دعا بيان أول نوفمبر لدولة جزائرية ذات سيادة وديمقراطية. بدأت الثورة.",
     quote:"من أجل الجزائر نحيا ومن أجل الجزائر نموت" },
   { name:"٥ جويلية ١٩٦٢", latin:"5 July 1962", year:"Independence Day", role:"Algeria is free", color:"#006233", type:"KEY EVENT", isPerson:false,
-    wiki:"Algerian_War", location:"All of Algeria — كامل الجزائر",
+    wiki:"Algerian_War", wikiAlt:["Évian_Accords","Algerian_independence_referendum,_1962"], location:"All of Algeria — كامل الجزائر",
     summary:"After 99.72% voted for independence, Algeria became sovereign on July 5, 1962 — 132 years after France invaded on the same date in 1830. The revolution cost an estimated 1.5 million lives.",
     summaryAr:"بعد تصويت 99.72% لصالح الاستقلال أصبحت الجزائر دولة ذات سيادة في 5 جويلية 1962 — بعد 132 سنة من الاحتلال. كلّفت الثورة ما يقارب مليون ونصف شهيد.",
     quote:"عاشت الجزائر حرة مستقلة" },
   { name:"مظاهرات ١١ ديسمبر", latin:"11 December 1960", year:"Popular uprising", role:"Mass demonstrations", color:"#4A4030", type:"KEY EVENT", isPerson:false,
-    wiki:"December_1960_demonstrations_in_French_Algeria", location:"Algiers, Oran, Constantine — الجزائر، وهران، قسنطينة",
+    wiki:"December_1960_demonstrations_in_French_Algeria", wikiAlt:["Manifestations_de_décembre_1960","Algerian_War"], location:"Algiers, Oran, Constantine — الجزائر، وهران، قسنطينة",
     summary:"Massive demonstrations erupted when de Gaulle visited Algeria. French forces opened fire on unarmed crowds, killing hundreds. The images shattered France's narrative and accelerated international recognition.",
     summaryAr:"اندلعت مظاهرات ضخمة عند زيارة ديغول للجزائر. فتحت القوات الفرنسية النار على حشود عزلاء فقتلت المئات. حطّمت الصور رواية فرنسا وسرّعت الاعتراف الدولي بحق تقرير المصير.",
     quote:"الشعب يريد الاستقلال" },
   { name:"العقيد عميروش", latin:"Colonel Amirouche", year:"1926–1959", role:"Commander of Wilaya III", color:"#3B4A38", type:"MILITARY COMMANDER", isPerson:true,
-    wiki:"Amirouche_Aït_Hamouda",
+    wiki:"Amirouche_Aït_Hamouda", wikiAlt:["Amirouche_Aït_Hamouda"],
     summary:"One of the most feared commanders. He transformed Wilaya III into a formidable resistance zone with schools and hospitals in liberated areas. Killed in an ambush on March 29, 1959 at age 33.",
     summaryAr:"أحد أكثر القادة رهبة. حوّل الولاية الثالثة إلى منطقة مقاومة قوية وأنشأ مدارس ومستشفيات في المناطق المحررة. استشهد في كمين يوم 29 مارس 1959 عن عمر 33 سنة.",
     quote:"إن لم ننتصر اليوم فسننتصر غداً" },
@@ -384,9 +398,9 @@ async function showDetail(i){
   document.body.classList.add('panel-open');
   panelOpen=true;
 
-  // Fetch photo from Wikipedia API
+  // Fetch photo from Wikipedia API (tries multiple slugs + French Wikipedia)
   if(c.wiki){
-    const url=await fetchPhoto(c.wiki);
+    const url=await fetchPhoto(c.wiki, c.wikiAlt);
     if(url){
       photo.src=url;
       photo.onload=()=>{photo.classList.add('loaded');loadTxt.textContent=''};
