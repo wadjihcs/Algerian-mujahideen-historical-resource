@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 39 L97 39 L68 60 L79 95 L50 73 L21 95 L32 60 L3 39 L39 39 Z' fill='%23c9a96e'/><circle cx='50' cy='50' r='12' fill='%230a0806'/></svg>">
 <title>أبطال الثورة الجزائرية — Infinite Canvas</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Playfair+Display:wght@400;700;900&family=Source+Serif+4:wght@300;400;600&display=swap');
@@ -158,7 +159,11 @@
   <div class="tool-btn" id="btnDir" title="Browse all cards"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></div>
   <div class="tool-btn" id="btnZoomIn" title="Zoom in"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
   <div class="tool-btn" id="btnZoomOut" title="Zoom out"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+  <div class="tool-btn" id="btnMusic" title="Toggle music"><svg viewBox="0 0 24 24" id="musicIcon" style="opacity:0.4"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
 </div>
+
+<!-- Background Music -->
+<audio id="bgMusic" loop preload="auto"><source src="music.mp3" type="audio/mpeg"></audio>
 
 <!-- DIRECTORY -->
 <div class="directory-backdrop" id="dirBackdrop"></div>
@@ -389,14 +394,14 @@ swipePanel.addEventListener('touchmove',e=>{if(swipePanel.scrollTop<=0){const dy
 
 // ── NAV ──
 document.addEventListener('touchmove',e=>{if(!panelOpen&&!dirOpen)e.preventDefault()},{passive:false});
-let drag=false,prev={x:0,y:0},vel={x:0,y:0,z:0};
+let drag=false,prev={x:0,y:0},vel={x:0,y:0,z:0},canvasClick=false;
 // SLOWER on mobile: higher damping (more friction), lower drag speed
 const DMP=isMobile?0.88:0.92;
 const DSP=isMobile?0.008:0.012;
 
-renderer.domElement.addEventListener('pointerdown',e=>{if(panelOpen||dirOpen)return;drag=true;prev={x:e.clientX,y:e.clientY};cStart={x:e.clientX,y:e.clientY};wasDrag=false});
+renderer.domElement.addEventListener('pointerdown',e=>{if(panelOpen||dirOpen)return;drag=true;canvasClick=true;prev={x:e.clientX,y:e.clientY};cStart={x:e.clientX,y:e.clientY};wasDrag=false});
 window.addEventListener('pointermove',e=>{if(!drag||panelOpen||dirOpen)return;vel.x-=(e.clientX-prev.x)*DSP;vel.y+=(e.clientY-prev.y)*DSP;prev={x:e.clientX,y:e.clientY};if(Math.abs(e.clientX-cStart.x)+Math.abs(e.clientY-cStart.y)>(isMobile?12:6))wasDrag=true});
-window.addEventListener('pointerup',e=>{drag=false;if(!wasDrag&&!panelOpen&&!dirOpen){mV.x=(e.clientX/window.innerWidth)*2-1;mV.y=-(e.clientY/window.innerHeight)*2+1;ray.setFromCamera(mV,camera);const ms=[];scene.traverse(c=>{if(c.isMesh&&c.userData.cardIndex!==undefined)ms.push(c)});const h=ray.intersectObjects(ms);if(h.length>0){const o=h[0].object;fTarget=o;fProg=0;fStart.copy(camera.position);fEnd.set(o.position.x,o.position.y,o.position.z+5);vel.x=0;vel.y=0;vel.z=0;setTimeout(()=>showDetail(o.userData.cardIndex),400)}}});
+window.addEventListener('pointerup',e=>{drag=false;if(canvasClick&&!wasDrag&&!panelOpen&&!dirOpen){mV.x=(e.clientX/window.innerWidth)*2-1;mV.y=-(e.clientY/window.innerHeight)*2+1;ray.setFromCamera(mV,camera);const ms=[];scene.traverse(c=>{if(c.isMesh&&c.userData.cardIndex!==undefined)ms.push(c)});const h=ray.intersectObjects(ms);if(h.length>0){const o=h[0].object;fTarget=o;fProg=0;fStart.copy(camera.position);fEnd.set(o.position.x,o.position.y,o.position.z+5);vel.x=0;vel.y=0;vel.z=0;setTimeout(()=>showDetail(o.userData.cardIndex),400)}}canvasClick=false});
 renderer.domElement.addEventListener('wheel',e=>{if(panelOpen||dirOpen)return;e.preventDefault();vel.z+=e.deltaY*0.003},{passive:false});
 let lTD=0;
 renderer.domElement.addEventListener('touchstart',e=>{if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lTD=Math.sqrt(dx*dx+dy*dy)}},{passive:true});
@@ -405,10 +410,21 @@ const keys={};window.addEventListener('keydown',e=>{if(!panelOpen&&!dirOpen)keys
 function pK(){if(panelOpen||dirOpen)return;const s=0.04;if(keys.ArrowLeft||keys.a)vel.x-=s;if(keys.ArrowRight||keys.d)vel.x+=s;if(keys.ArrowUp||keys.w)vel.y+=s;if(keys.ArrowDown||keys.s)vel.y-=s}
 
 // ── TOOLBAR ACTIONS ──
-document.getElementById('btnHome').addEventListener('click',()=>{fTarget={position:{x:0,y:0,z:0}};fProg=0;fStart.copy(camera.position);fEnd.set(0,0,12);vel.x=0;vel.y=0;vel.z=0});
-document.getElementById('btnDir').addEventListener('click',openDir);
-document.getElementById('btnZoomIn').addEventListener('click',()=>{vel.z-=0.3});
-document.getElementById('btnZoomOut').addEventListener('click',()=>{vel.z+=0.3});
+document.getElementById('toolbar').addEventListener('pointerdown',e=>{e.stopPropagation()});
+document.getElementById('btnHome').addEventListener('click',e=>{e.stopPropagation();fTarget={position:{x:0,y:0,z:0}};fProg=0;fStart.copy(camera.position);fEnd.set(0,0,12);vel.x=0;vel.y=0;vel.z=0});
+document.getElementById('btnDir').addEventListener('click',e=>{e.stopPropagation();openDir()});
+document.getElementById('btnZoomIn').addEventListener('click',e=>{e.stopPropagation();vel.z-=0.3});
+document.getElementById('btnZoomOut').addEventListener('click',e=>{e.stopPropagation();vel.z+=0.3});
+
+// Music control
+const bgMusic=document.getElementById('bgMusic');
+let musicPlaying=false;
+bgMusic.volume=0.18; // Low but audible
+document.getElementById('btnMusic').addEventListener('click',e=>{
+  e.stopPropagation();
+  if(musicPlaying){bgMusic.pause();musicPlaying=false;document.getElementById('musicIcon').style.opacity='0.4'}
+  else{bgMusic.play().then(()=>{musicPlaying=true;document.getElementById('musicIcon').style.opacity='1'}).catch(()=>{})}
+});
 
 const coordsEl=document.getElementById('coords'),clickHint=document.getElementById('clickHint');
 let time=0,hD=false;
@@ -431,6 +447,8 @@ document.getElementById('enterBtn').addEventListener('click',()=>{
   document.getElementById('toolbar').style.display='flex';
   if(isMobile){document.getElementById('navHint').innerHTML='Swipe to explore · Pinch to zoom<br>Tap a card to read';document.getElementById('clickHint').textContent='Tap on a card to learn more'}
   buildDir();animate();
+  // Start background music
+  bgMusic.play().then(()=>{musicPlaying=true;document.getElementById('musicIcon').style.opacity='1'}).catch(()=>{document.getElementById('musicIcon').style.opacity='0.4'});
 });
 </script>
 </body>
