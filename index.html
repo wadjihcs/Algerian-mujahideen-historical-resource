@@ -6,159 +6,145 @@
 <title>أبطال الثورة الجزائرية — Infinite Canvas</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Playfair+Display:wght@400;700;900&family=Source+Serif+4:wght@300;400;600&display=swap');
+  :root { --bg:#1e1b16;--bg-rgb:30,27,22;--accent:#b8945a;--accent-dim:#9a8260;--accent-faint:#6a6050;--text:#e0d4be;--text-dim:#c0b498;--panel-bg:linear-gradient(165deg,#28241e 0%,#1e1b16 100%);--panel-border:rgba(184,148,90,0.25);--grain-opacity:0.03;--vignette-strength:0.45; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);overflow:hidden;cursor:grab;font-family:'Playfair Display',serif;user-select:none;-webkit-user-select:none}
+  body:active{cursor:grabbing}body.panel-open{cursor:default}
+  #canvas-container{position:fixed;inset:0;z-index:1;touch-action:none}
+  canvas{display:block;touch-action:none}
 
-  :root {
-    --bg: #1e1b16; --bg-rgb: 30,27,22;
-    --accent: #b8945a; --accent-dim: #9a8260; --accent-faint: #6a6050;
-    --text: #e0d4be; --text-dim: #c0b498;
-    --panel-bg: linear-gradient(165deg, #28241e 0%, #1e1b16 100%);
-    --panel-border: rgba(184,148,90,0.25);
-    --grain-opacity: 0.03; --scanline-opacity: 0.015; --vignette-strength: 0.45;
-  }
+  .overlay-top{position:fixed;top:0;left:0;right:0;z-index:10;padding:28px 36px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
+  .logo{display:flex;flex-direction:column;gap:4px}
+  .logo h1{font-family:'Playfair Display',serif;font-weight:900;font-size:22px;color:var(--accent);letter-spacing:4px;text-transform:uppercase}
+  .logo .subtitle{font-family:'Amiri',serif;font-size:18px;color:var(--accent-dim);direction:rtl}
+  .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+  .nav-hint{font-family:'Source Serif 4',serif;font-size:12px;color:var(--accent-faint);letter-spacing:2px;text-transform:uppercase;text-align:right;line-height:1.8}
+  .overlay-bottom{position:fixed;bottom:0;left:0;right:0;z-index:10;padding:24px 36px;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none}
+  .date-badge{font-family:'Playfair Display',serif;font-size:13px;color:var(--accent-faint);letter-spacing:3px;border:1px solid var(--panel-border);padding:8px 16px}
+  .coordinates{font-family:'Source Serif 4',serif;font-size:11px;color:var(--accent-faint);letter-spacing:1px;font-variant-numeric:tabular-nums;opacity:0.6}
+  .vignette{position:fixed;inset:0;z-index:5;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(var(--bg-rgb),var(--vignette-strength)) 100%)}
+  .grain{position:fixed;inset:0;z-index:6;pointer-events:none;opacity:var(--grain-opacity);background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:128px;mix-blend-mode:overlay}
+  .scanlines{position:fixed;inset:0;z-index:6;pointer-events:none;background:repeating-linear-gradient(to bottom,transparent,transparent 2px,rgba(var(--bg-rgb),0.015) 2px,rgba(var(--bg-rgb),0.015) 4px)}
+  .intro-overlay{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1.5s ease,visibility 1.5s ease;padding:24px;text-align:center}
+  .intro-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  .intro-overlay h2{font-family:'Amiri',serif;font-size:42px;color:var(--accent);margin-bottom:8px;direction:rtl}
+  .intro-overlay p{font-family:'Source Serif 4',serif;font-size:16px;color:var(--accent-dim);letter-spacing:3px;text-transform:uppercase;margin-bottom:40px}
+  .intro-overlay .enter-btn{font-family:'Playfair Display',serif;font-size:14px;color:var(--accent);letter-spacing:4px;text-transform:uppercase;border:1px solid var(--accent);padding:14px 40px;background:transparent;cursor:pointer;transition:all 0.4s ease}
+  .intro-overlay .enter-btn:hover{background:var(--accent);color:var(--bg)}
+  .intro-overlay .star{width:40px;height:40px;margin-bottom:24px}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); overflow: hidden; cursor: grab; font-family: 'Playfair Display', serif; user-select: none; -webkit-user-select: none; transition: background 0.8s ease; }
-  body:active { cursor: grabbing; }
-  body.panel-open { cursor: default; }
-  #canvas-container { position: fixed; inset: 0; z-index: 1; touch-action: none; }
-  canvas { display: block; touch-action: none; }
+  /* TOOLBAR */
+  .toolbar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:12;display:flex;gap:6px;pointer-events:auto}
+  .tool-btn{width:44px;height:44px;border-radius:50%;background:rgba(var(--bg-rgb),0.85);border:1px solid var(--panel-border);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s ease;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-size:18px}
+  .tool-btn:hover,.tool-btn:active{background:rgba(184,148,90,0.2);border-color:var(--accent)}
+  .tool-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .card-counter{font-family:'Source Serif 4',serif;font-size:10px;color:var(--accent-dim);text-align:center;margin-top:4px;letter-spacing:1px}
 
-  .overlay-top { position: fixed; top: 0; left: 0; right: 0; z-index: 10; padding: 28px 36px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
-  .logo { display: flex; flex-direction: column; gap: 4px; }
-  .logo h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: 22px; color: var(--accent); letter-spacing: 4px; text-transform: uppercase; }
-  .logo .subtitle { font-family: 'Amiri', serif; font-size: 18px; color: var(--accent-dim); direction: rtl; }
-  .top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-  .nav-hint { font-family: 'Source Serif 4', serif; font-size: 12px; color: var(--accent-faint); letter-spacing: 2px; text-transform: uppercase; text-align: right; line-height: 1.8; }
-
-  .overlay-bottom { position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; padding: 24px 36px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; }
-  .date-badge { font-family: 'Playfair Display', serif; font-size: 13px; color: var(--accent-faint); letter-spacing: 3px; border: 1px solid var(--panel-border); padding: 8px 16px; }
-  .coordinates { font-family: 'Source Serif 4', serif; font-size: 11px; color: var(--accent-faint); letter-spacing: 1px; font-variant-numeric: tabular-nums; opacity: 0.6; }
-  .vignette { position: fixed; inset: 0; z-index: 5; pointer-events: none; background: radial-gradient(ellipse at center, transparent 40%, rgba(var(--bg-rgb), var(--vignette-strength)) 100%); transition: background 0.8s ease; }
-  .grain { position: fixed; inset: 0; z-index: 6; pointer-events: none; opacity: var(--grain-opacity); background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size: 128px; mix-blend-mode: overlay; transition: opacity 0.8s ease; }
-  .scanlines { position: fixed; inset: 0; z-index: 6; pointer-events: none; background: repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(var(--bg-rgb), var(--scanline-opacity)) 2px, rgba(var(--bg-rgb), var(--scanline-opacity)) 4px); }
-
-  .intro-overlay { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 1.5s ease, visibility 1.5s ease; padding: 24px; text-align: center; }
-  .intro-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-  .intro-overlay h2 { font-family: 'Amiri', serif; font-size: 42px; color: var(--accent); margin-bottom: 8px; direction: rtl; }
-  .intro-overlay p { font-family: 'Source Serif 4', serif; font-size: 16px; color: var(--accent-dim); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 40px; }
-  .intro-overlay .enter-btn { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--accent); letter-spacing: 4px; text-transform: uppercase; border: 1px solid var(--accent); padding: 14px 40px; background: transparent; cursor: pointer; transition: all 0.4s ease; }
-  .intro-overlay .enter-btn:hover { background: var(--accent); color: var(--bg); }
-  .intro-overlay .star { width: 40px; height: 40px; margin-bottom: 24px; }
+  /* DIRECTORY DRAWER */
+  .directory{position:fixed;left:0;top:0;bottom:0;width:320px;max-width:85vw;z-index:55;background:var(--panel-bg);border-right:1px solid var(--panel-border);transform:translateX(-100%);transition:transform 0.5s cubic-bezier(0.16,1,0.3,1);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  .directory.open{transform:translateX(0)}
+  .directory-header{padding:28px 24px 20px;border-bottom:1px solid var(--panel-border);display:flex;justify-content:space-between;align-items:center}
+  .directory-title{font-family:'Playfair Display',serif;font-size:16px;color:var(--accent);letter-spacing:2px}
+  .directory-close{width:32px;height:32px;border:1px solid var(--panel-border);background:transparent;color:var(--accent);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px}
+  .directory-section{padding:16px 24px 8px;font-family:'Source Serif 4',serif;font-size:9px;color:var(--accent-faint);letter-spacing:3px;text-transform:uppercase}
+  .directory-item{padding:12px 24px;cursor:pointer;transition:background 0.2s;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(var(--bg-rgb),0.3)}
+  .directory-item:hover,.directory-item:active{background:rgba(184,148,90,0.08)}
+  .directory-item .di-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .directory-item .di-info{flex:1;min-width:0}
+  .directory-item .di-name{font-family:'Amiri',serif;font-size:16px;color:var(--text);direction:rtl;text-align:right;line-height:1.3}
+  .directory-item .di-latin{font-family:'Source Serif 4',serif;font-size:12px;color:var(--accent-dim);margin-top:2px}
+  .directory-backdrop{position:fixed;inset:0;z-index:54;background:rgba(0,0,0,0.4);opacity:0;visibility:hidden;transition:all 0.4s ease}
+  .directory-backdrop.visible{opacity:1;visibility:visible}
 
   /* DETAIL PANEL */
-  .detail-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: flex-end; opacity: 0; visibility: hidden; transition: opacity 0.6s ease, visibility 0.6s ease; pointer-events: none; }
-  .detail-overlay.visible { opacity: 1; visibility: visible; pointer-events: auto; }
-  .detail-backdrop { position: absolute; inset: 0; background: rgba(var(--bg-rgb), 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-  .detail-panel { position: relative; z-index: 2; width: 460px; max-width: 92vw; max-height: 88vh; margin-right: 40px; background: var(--panel-bg); border: 1px solid var(--panel-border); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; transform: translateX(60px); transition: transform 0.6s cubic-bezier(0.16,1,0.3,1); }
-  .detail-overlay.visible .detail-panel { transform: translateX(0); }
-  .detail-panel::-webkit-scrollbar { width: 4px; }
-  .detail-panel::-webkit-scrollbar-track { background: transparent; }
-  .detail-panel::-webkit-scrollbar-thumb { background: rgba(201,169,110,0.2); border-radius: 2px; }
-
-  .detail-photo-wrap { width: 100%; height: 260px; overflow: hidden; position: relative; background: #151310; }
-  .detail-photo { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; filter: sepia(0.15) contrast(1.05); opacity: 0; transition: opacity 0.6s ease; display: block; }
-  .detail-photo.is-person { object-fit: contain; object-position: center center; background: #0e0c0a; padding: 6px; }
-  .detail-photo.loaded { opacity: 1; }
-  .detail-photo-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
-  .detail-photo-fallback svg { width: 50px; height: 50px; opacity: 0.12; }
-  .detail-photo-fallback .loading-text { font-family: 'Source Serif 4', serif; font-size: 10px; color: var(--accent-faint); letter-spacing: 2px; text-transform: uppercase; opacity: 0.5; }
-  .detail-photo-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: linear-gradient(transparent, rgba(var(--bg-rgb), 1)); pointer-events: none; }
-  .detail-location { font-family: 'Source Serif 4', serif; font-size: 11px; color: var(--accent-dim); letter-spacing: 1px; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
-  .detail-location::before { content: '◆'; font-size: 6px; color: var(--accent); }
-  .detail-photo-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: linear-gradient(transparent, rgba(var(--bg-rgb), 1)); pointer-events: none; }
-  .detail-close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; background: rgba(var(--bg-rgb),0.7); border: 1px solid rgba(201,169,110,0.3); color: var(--accent); font-size: 18px; cursor: pointer; z-index: 5; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; line-height: 1; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border-radius: 4px; }
-  .detail-close:hover { background: rgba(201,169,110,0.2); border-color: var(--accent); }
-
-  .detail-header { padding: 20px 32px 20px; }
-  .detail-type { font-family: 'Source Serif 4', serif; font-size: 10px; color: var(--accent-dim); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 10px; }
-  .detail-name-ar { font-family: 'Amiri', serif; font-size: 30px; color: var(--text); direction: rtl; margin-bottom: 4px; line-height: 1.3; }
-  .detail-name-latin { font-family: 'Playfair Display', serif; font-size: 19px; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
-  .detail-years { font-family: 'Source Serif 4', serif; font-size: 14px; color: var(--accent-dim); }
-  .detail-role { font-family: 'Source Serif 4', serif; font-size: 13px; color: var(--accent-dim); font-style: italic; margin-top: 6px; }
-  .detail-body { padding: 20px 32px 32px; }
-  .detail-summary-en { font-family: 'Source Serif 4', serif; font-size: 14.5px; color: var(--text-dim); line-height: 1.8; margin-bottom: 20px; }
-  .detail-summary-ar { font-family: 'Amiri', serif; font-size: 17px; color: var(--text-dim); line-height: 2; direction: rtl; text-align: right; padding: 16px 20px; border-right: 3px solid var(--accent); background: rgba(var(--bg-rgb), 0.3); margin-bottom: 20px; border-radius: 0 4px 4px 0; }
-  .lang-label { font-family: 'Source Serif 4', serif; font-size: 10px; color: var(--accent-dim); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-  .lang-label::after { content: ''; flex: 1; height: 1px; background: var(--panel-border); }
-  .detail-divider { width: 40px; height: 1px; background: var(--panel-border); margin: 20px 0; }
-  .detail-quote { font-family: 'Amiri', serif; font-size: 18px; color: var(--accent); direction: rtl; text-align: right; line-height: 1.7; padding: 14px 0; border-top: 1px solid rgba(201,169,110,0.1); border-bottom: 1px solid rgba(201,169,110,0.1); font-style: italic; }
-  .detail-star { display: flex; justify-content: center; margin-top: 20px; opacity: 0.3; }
-  .click-hint { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 10; font-family: 'Source Serif 4', serif; font-size: 12px; color: var(--accent-faint); letter-spacing: 2px; text-transform: uppercase; pointer-events: none; opacity: 0; transition: opacity 0.5s ease; }
-  .click-hint.visible { opacity: 1; }
+  .detail-overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:flex-end;opacity:0;visibility:hidden;transition:opacity 0.6s ease,visibility 0.6s ease;pointer-events:none}
+  .detail-overlay.visible{opacity:1;visibility:visible;pointer-events:auto}
+  .detail-backdrop{position:absolute;inset:0;background:rgba(var(--bg-rgb),0.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+  .detail-panel{position:relative;z-index:2;width:460px;max-width:92vw;max-height:88vh;margin-right:40px;background:var(--panel-bg);border:1px solid var(--panel-border);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transform:translateX(60px);transition:transform 0.6s cubic-bezier(0.16,1,0.3,1)}
+  .detail-overlay.visible .detail-panel{transform:translateX(0)}
+  .detail-panel::-webkit-scrollbar{width:4px}.detail-panel::-webkit-scrollbar-track{background:transparent}.detail-panel::-webkit-scrollbar-thumb{background:rgba(201,169,110,0.2);border-radius:2px}
+  .detail-photo-wrap{width:100%;height:260px;overflow:hidden;position:relative;background:#151310}
+  .detail-photo{width:100%;height:100%;object-fit:cover;object-position:center 20%;filter:sepia(0.15) contrast(1.05);opacity:0;transition:opacity 0.6s ease;display:block}
+  .detail-photo.is-person{object-fit:contain;object-position:center center;background:#0e0c0a;padding:6px}
+  .detail-photo.loaded{opacity:1}
+  .detail-photo-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+  .detail-photo-fallback svg{width:50px;height:50px;opacity:0.12}
+  .loading-text{font-family:'Source Serif 4',serif;font-size:10px;color:var(--accent-faint);letter-spacing:2px;text-transform:uppercase;opacity:0.5}
+  .detail-photo-gradient{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(transparent,rgba(var(--bg-rgb),1));pointer-events:none}
+  .detail-close{position:absolute;top:12px;right:12px;width:36px;height:36px;background:rgba(var(--bg-rgb),0.7);border:1px solid rgba(201,169,110,0.3);color:var(--accent);font-size:18px;cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;line-height:1;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);border-radius:4px}
+  .detail-close:hover{background:rgba(201,169,110,0.2);border-color:var(--accent)}
+  .detail-header{padding:20px 32px 20px}
+  .detail-type{font-family:'Source Serif 4',serif;font-size:10px;color:var(--accent-dim);letter-spacing:4px;text-transform:uppercase;margin-bottom:10px}
+  .detail-name-ar{font-family:'Amiri',serif;font-size:30px;color:var(--text);direction:rtl;margin-bottom:4px;line-height:1.3}
+  .detail-name-latin{font-family:'Playfair Display',serif;font-size:19px;color:var(--accent);font-weight:700;margin-bottom:4px}
+  .detail-years{font-family:'Source Serif 4',serif;font-size:14px;color:var(--accent-dim)}
+  .detail-role{font-family:'Source Serif 4',serif;font-size:13px;color:var(--accent-dim);font-style:italic;margin-top:6px}
+  .detail-location{font-family:'Source Serif 4',serif;font-size:11px;color:var(--accent-dim);letter-spacing:1px;margin-top:8px;display:flex;align-items:center;gap:6px}
+  .detail-location::before{content:'◆';font-size:6px;color:var(--accent)}
+  .detail-body{padding:20px 32px 32px}
+  .detail-summary-en{font-family:'Source Serif 4',serif;font-size:14.5px;color:var(--text-dim);line-height:1.8;margin-bottom:20px}
+  .detail-summary-ar{font-family:'Amiri',serif;font-size:17px;color:var(--text-dim);line-height:2;direction:rtl;text-align:right;padding:16px 20px;border-right:3px solid var(--accent);background:rgba(var(--bg-rgb),0.3);margin-bottom:20px;border-radius:0 4px 4px 0}
+  .lang-label{font-family:'Source Serif 4',serif;font-size:10px;color:var(--accent-dim);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .lang-label::after{content:'';flex:1;height:1px;background:var(--panel-border)}
+  .detail-divider{width:40px;height:1px;background:var(--panel-border);margin:20px 0}
+  .detail-quote{font-family:'Amiri',serif;font-size:18px;color:var(--accent);direction:rtl;text-align:right;line-height:1.7;padding:14px 0;border-top:1px solid rgba(201,169,110,0.1);border-bottom:1px solid rgba(201,169,110,0.1);font-style:italic}
+  .detail-star{display:flex;justify-content:center;margin-top:20px;opacity:0.3}
+  .click-hint{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:10;font-family:'Source Serif 4',serif;font-size:12px;color:var(--accent-faint);letter-spacing:2px;text-transform:uppercase;pointer-events:none;opacity:0;transition:opacity 0.5s ease}
+  .click-hint.visible{opacity:1}
 
   /* TABLET */
-  @media (max-width: 1024px) {
-    .overlay-top { padding: 22px 28px; } .overlay-bottom { padding: 20px 28px; }
-    .detail-panel { width: 400px; margin-right: 28px; }
+  @media(max-width:1024px){.overlay-top{padding:22px 28px}.overlay-bottom{padding:20px 28px}.detail-panel{width:400px;margin-right:28px}}
+  @media(max-width:768px){
+    .overlay-top{padding:18px 20px}.overlay-bottom{padding:16px 20px}
+    .logo h1{font-size:18px;letter-spacing:2px}.logo .subtitle{font-size:15px}.nav-hint{font-size:11px}
+    .intro-overlay h2{font-size:34px}
+    .detail-overlay{align-items:flex-end;justify-content:center}
+    .detail-panel{width:100vw;max-width:100vw;margin:0;max-height:80vh;border-radius:16px 16px 0 0;border-bottom:none;transform:translateY(100%)}
+    .detail-overlay.visible .detail-panel{transform:translateY(0)}
+    .detail-panel::before{content:'';display:block;width:40px;height:4px;background:rgba(201,169,110,0.3);border-radius:2px;margin:10px auto 0}
+    .detail-header{padding:16px 24px}.detail-body{padding:16px 24px 28px}
+    .detail-photo-wrap{height:200px}.detail-close{top:10px;right:10px}
+    .toolbar{bottom:16px}.tool-btn{width:40px;height:40px}
+    .directory{width:280px}
   }
-  /* SMALL TABLET */
-  @media (max-width: 768px) {
-    .overlay-top { padding: 18px 20px; } .overlay-bottom { padding: 16px 20px; }
-    .logo h1 { font-size: 18px; letter-spacing: 2px; } .logo .subtitle { font-size: 15px; }
-    .nav-hint { font-size: 11px; } .intro-overlay h2 { font-size: 34px; }
-    .detail-overlay { align-items: flex-end; justify-content: center; }
-    .detail-panel { width: 100vw; max-width: 100vw; margin: 0; max-height: 80vh; border-radius: 16px 16px 0 0; border-bottom: none; transform: translateY(100%); }
-    .detail-overlay.visible .detail-panel { transform: translateY(0); }
-    .detail-panel::before { content: ''; display: block; width: 40px; height: 4px; background: rgba(201,169,110,0.3); border-radius: 2px; margin: 10px auto 0; }
-    .detail-header { padding: 16px 24px; } .detail-body { padding: 16px 24px 28px; }
-    .detail-photo-wrap { height: 200px; } .detail-close { top: 10px; right: 10px; }
+  @media(max-width:480px){
+    .overlay-top{padding:14px 14px}.overlay-bottom{padding:12px 14px}
+    .logo h1{font-size:15px;letter-spacing:1.5px}.logo .subtitle{font-size:13px}.nav-hint{font-size:9px}.top-right{gap:8px}
+    .intro-overlay h2{font-size:26px}.intro-overlay p{font-size:11px;margin-bottom:30px}.intro-overlay .enter-btn{font-size:12px;padding:12px 28px}.intro-overlay .star{width:32px;height:32px}
+    .detail-panel{max-height:82vh;border-radius:14px 14px 0 0}
+    .detail-photo-wrap{height:160px}.detail-close{width:32px;height:32px;font-size:15px}
+    .detail-header{padding:14px 16px}.detail-body{padding:14px 16px 24px}
+    .detail-name-ar{font-size:22px}.detail-name-latin{font-size:15px}
+    .detail-summary-en{font-size:13px}.detail-summary-ar{font-size:15px;padding:12px 14px}
+    .detail-quote{font-size:16px}.date-badge{font-size:10px;padding:5px 10px}.coordinates{font-size:9px}
+    .click-hint{font-size:10px;bottom:65px}
+    .toolbar{bottom:12px;gap:4px}.tool-btn{width:38px;height:38px}
+    .directory{width:260px}.directory-item .di-name{font-size:15px}
   }
-  /* PHONE */
-  @media (max-width: 480px) {
-    .overlay-top { padding: 14px 14px; } .overlay-bottom { padding: 12px 14px; }
-    .logo h1 { font-size: 15px; letter-spacing: 1.5px; } .logo .subtitle { font-size: 13px; }
-    .nav-hint { font-size: 9px; } .top-right { gap: 8px; }
-    .intro-overlay h2 { font-size: 26px; } .intro-overlay p { font-size: 11px; margin-bottom: 30px; }
-    .intro-overlay .enter-btn { font-size: 12px; padding: 12px 28px; } .intro-overlay .star { width: 32px; height: 32px; }
-    .detail-panel { max-height: 82vh; border-radius: 14px 14px 0 0; }
-    .detail-photo-wrap { height: 160px; } .detail-close { width: 32px; height: 32px; font-size: 15px; }
-    .detail-header { padding: 14px 16px; } .detail-body { padding: 14px 16px 24px; }
-    .detail-name-ar { font-size: 22px; } .detail-name-latin { font-size: 15px; }
-    .detail-summary-en { font-size: 13px; } .detail-summary-ar { font-size: 15px; padding: 12px 14px; }
-    .detail-quote { font-size: 16px; }
-    .date-badge { font-size: 10px; padding: 5px 10px; } .coordinates { font-size: 9px; }
-    .click-hint { font-size: 10px; bottom: 44px; }
+  @media(max-width:360px){.logo h1{font-size:13px}.intro-overlay h2{font-size:22px}.detail-name-ar{font-size:20px}.detail-photo-wrap{height:130px}}
+  @media(max-height:500px) and (orientation:landscape){
+    .overlay-top{padding:10px 20px}.overlay-bottom{padding:8px 20px}.logo h1{font-size:14px}.logo .subtitle{display:none}
+    .detail-overlay{align-items:center;justify-content:flex-end}
+    .detail-panel{width:380px;max-width:50vw;max-height:94vh;margin-right:20px;border-radius:0;transform:translateX(100%)}
+    .detail-overlay.visible .detail-panel{transform:translateX(0)}.detail-panel::before{display:none}.detail-photo-wrap{height:120px}
+    .toolbar{bottom:8px}
   }
-  @media (max-width: 360px) {
-    .logo h1 { font-size: 13px; } .intro-overlay h2 { font-size: 22px; }
-    .detail-name-ar { font-size: 20px; } .detail-photo-wrap { height: 130px; }
-  }
-  /* LANDSCAPE PHONE */
-  @media (max-height: 500px) and (orientation: landscape) {
-    .overlay-top { padding: 10px 20px; } .overlay-bottom { padding: 8px 20px; }
-    .logo h1 { font-size: 14px; } .logo .subtitle { display: none; }
-    .intro-overlay h2 { font-size: 24px; } .intro-overlay p { margin-bottom: 20px; }
-    .detail-overlay { align-items: center; justify-content: flex-end; }
-    .detail-panel { width: 380px; max-width: 50vw; max-height: 94vh; margin-right: 20px; border-radius: 0; transform: translateX(100%); }
-    .detail-overlay.visible .detail-panel { transform: translateX(0); }
-    .detail-panel::before { display: none; }
-    .detail-photo-wrap { height: 120px; }
-  }
-  @media (pointer: coarse) { body, body:active { cursor: default; } }
-  @supports (padding: env(safe-area-inset-top)) {
-    .overlay-top { padding-top: max(14px, env(safe-area-inset-top)); }
-    .overlay-bottom { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
-    .detail-panel { padding-bottom: env(safe-area-inset-bottom); }
-  }
+  @media(pointer:coarse){body,body:active{cursor:default}}
+  @supports(padding:env(safe-area-inset-top)){.overlay-top{padding-top:max(14px,env(safe-area-inset-top))}.overlay-bottom{padding-bottom:max(12px,env(safe-area-inset-bottom))}.detail-panel{padding-bottom:env(safe-area-inset-bottom)}.toolbar{bottom:max(12px,calc(env(safe-area-inset-bottom) + 8px))}}
 </style>
 </head>
 <body>
-
 <div class="intro-overlay" id="intro">
   <svg class="star" viewBox="0 0 100 100"><path d="M50 5 L61 39 L97 39 L68 60 L79 95 L50 73 L21 95 L32 60 L3 39 L39 39 Z" fill="currentColor" style="color:var(--accent)"/><circle cx="50" cy="50" r="12" fill="currentColor" style="color:var(--bg)"/></svg>
   <h2>أبطال الثورة الجزائرية</h2>
   <p>Heroes of the Algerian Revolution</p>
   <button class="enter-btn" id="enterBtn">Explore the Canvas</button>
 </div>
-
 <div id="canvas-container"></div>
 <div class="vignette"></div><div class="grain"></div><div class="scanlines"></div>
-
 <div class="overlay-top">
   <div class="logo"><h1>الثورة</h1><span class="subtitle">١٩٥٤ — ١٩٦٢</span></div>
-  <div class="top-right">
-    <div class="nav-hint" id="navHint">Drag to explore · Scroll to zoom<br>Click a card to read</div>
-  </div>
+  <div class="top-right"><div class="nav-hint" id="navHint">Drag to explore · Scroll to zoom<br>Click a card to read</div></div>
 </div>
 <div class="overlay-bottom">
   <div class="date-badge">1 NOV 1954 — 5 JUL 1962</div>
@@ -166,14 +152,27 @@
 </div>
 <div class="click-hint" id="clickHint">Click on a card to learn more</div>
 
+<!-- TOOLBAR -->
+<div class="toolbar" id="toolbar" style="display:none">
+  <div class="tool-btn" id="btnHome" title="Return to center"><svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/><path d="M9 21v-6h6v6"/></svg></div>
+  <div class="tool-btn" id="btnDir" title="Browse all cards"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></div>
+  <div class="tool-btn" id="btnZoomIn" title="Zoom in"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+  <div class="tool-btn" id="btnZoomOut" title="Zoom out"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+</div>
+
+<!-- DIRECTORY -->
+<div class="directory-backdrop" id="dirBackdrop"></div>
+<div class="directory" id="directory">
+  <div class="directory-header"><span class="directory-title">Directory</span><button class="directory-close" id="dirClose">✕</button></div>
+  <div id="dirContent"></div>
+</div>
+
+<!-- DETAIL PANEL -->
 <div class="detail-overlay" id="detailOverlay">
   <div class="detail-backdrop" id="detailBackdrop"></div>
-  <div class="detail-panel">
+  <div class="detail-panel" id="detailPanel">
     <div class="detail-photo-wrap">
-      <div class="detail-photo-fallback" id="detailFallback">
-        <svg viewBox="0 0 100 100"><path d="M50 5 L61 39 L97 39 L68 60 L79 95 L50 73 L21 95 L32 60 L3 39 L39 39 Z" fill="currentColor" style="color:var(--accent)"/></svg>
-        <span class="loading-text" id="loadingText">Loading photo...</span>
-      </div>
+      <div class="detail-photo-fallback" id="detailFallback"><svg viewBox="0 0 100 100"><path d="M50 5 L61 39 L97 39 L68 60 L79 95 L50 73 L21 95 L32 60 L3 39 L39 39 Z" fill="currentColor" style="color:var(--accent)"/></svg><span class="loading-text" id="loadingText">Loading photo...</span></div>
       <img class="detail-photo" id="detailPhoto" alt="" referrerpolicy="no-referrer">
       <div class="detail-photo-gradient"></div>
       <button class="detail-close" id="detailClose">✕</button>
@@ -201,144 +200,104 @@
 <script type="importmap">
 { "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js" } }
 </script>
-
 <script type="module">
 import * as THREE from 'three';
 
-// Photo cache + Wikipedia API loader
-const photoCache = {};
-async function fetchPhoto(wikiSlug, altSlugs) {
-  if (photoCache[wikiSlug]) return photoCache[wikiSlug];
-  
-  // Build list of slugs to try: primary + alternatives
-  const slugs = [wikiSlug, ...(altSlugs || [])];
-  
-  for (const slug of slugs) {
-    // Try English Wikipedia
-    try {
-      const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`);
-      if (r.ok) {
-        const d = await r.json();
-        const url = d.originalimage?.source || d.thumbnail?.source;
-        if (url && !url.includes('map') && !url.includes('flag') && !url.includes('logo') && !url.includes('icon')) {
-          photoCache[wikiSlug] = url;
-          return url;
-        }
-      }
-    } catch(e) {}
-    
-    // Try French Wikipedia (better Algerian revolution coverage)
-    try {
-      const r2 = await fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`);
-      if (r2.ok) {
-        const d2 = await r2.json();
-        const url2 = d2.originalimage?.source || d2.thumbnail?.source;
-        if (url2 && !url2.includes('map') && !url2.includes('logo') && !url2.includes('icon')) {
-          photoCache[wikiSlug] = url2;
-          return url2;
-        }
-      }
-    } catch(e2) {}
+const photoCache={};
+async function fetchPhoto(slug,alts){
+  if(photoCache[slug])return photoCache[slug];
+  const slugs=[slug,...(alts||[])];
+  for(const s of slugs){
+    for(const lang of['en','fr']){
+      try{
+        const r=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(s)}`);
+        if(r.ok){const d=await r.json();const u=d.originalimage?.source||d.thumbnail?.source;
+        if(u&&!u.includes('logo')&&!u.includes('icon')){photoCache[slug]=u;return u}}
+      }catch(e){}
+    }
   }
   return null;
 }
 
-const CARDS = [
-  { name:"لعربي بن مهيدي", latin:"Larbi Ben M'hidi", year:"1923–1957", role:"Leader of Zone V (Oran)", color:"#8B4513", type:"HISTORIC LEADER", isPerson:true,
-    wiki:"Larbi_Ben_M'hidi",
-    summary:"One of the nine historic founders of the FLN and leader of Zone V. He commanded urban guerrilla operations during the Battle of Algiers. Captured in February 1957, he was tortured and assassinated by the French military who staged his death as a suicide. His defiance became legendary.",
-    summaryAr:"أحد المؤسسين التسعة التاريخيين لجبهة التحرير الوطني وقائد المنطقة الخامسة. قاد عمليات حرب العصابات الحضرية خلال معركة الجزائر. اعتُقل في فبراير 1957، وتعرض للتعذيب ثم اغتيل من طرف الجيش الفرنسي الذي زيّف موته على أنه انتحار. أصبح تحديه أسطورياً.",
-    quote:"أعطونا طائراتكم ودباباتكم نعطيكم قفافنا" },
-  { name:"مصطفى بن بولعيد", latin:"Mostefa Ben Boulaïd", year:"1917–1956", role:"Leader of Zone I (Aurès)", color:"#6B3410", type:"HISTORIC LEADER", isPerson:true,
-    wiki:"Mostefa_Ben_Boulaïd",
-    summary:"Known as the 'Father of the Revolution.' A WWII veteran, he sold his properties to buy the first weapons for November 1st, 1954. After escaping prison, he was killed on March 22, 1956 by a booby-trapped radio planted by French intelligence.",
-    summaryAr:"يُلقب بـ'أبو الثورة'. محارب في الحرب العالمية الثانية، باع ممتلكاته لشراء أول أسلحة الثورة. بعد هروبه من السجن، استشهد في 22 مارس 1956 بجهاز راديو مفخخ زرعته المخابرات الفرنسية.",
-    quote:"نموت ونحيا ونموت حتى تحيا الجزائر" },
-  { name:"ديدوش مراد", latin:"Didouche Mourad", year:"1927–1955", role:"Leader of Zone II (North Constantine)", color:"#4A5530", type:"HISTORIC LEADER", isPerson:true,
-    wiki:"Didouche_Mourad", wikiAlt:["Mourad_Didouche"],
-    summary:"The youngest of the nine historic leaders. He played a key role in drafting the November 1st Declaration. He fell in battle on January 18, 1955 — the first of the nine to die in combat, at 27 years old.",
-    summaryAr:"أصغر القادة التاريخيين التسعة. لعب دوراً محورياً في صياغة بيان أول نوفمبر. استشهد في المعركة يوم 18 جانفي 1955 — أول القادة التسعة سقوطاً في الميدان، عن عمر 27 سنة.",
-    quote:"نحن ثوار قمنا لنحيا فلا بد أن نمضي في طريقنا" },
-  { name:"كريم بلقاسم", latin:"Krim Belkacem", year:"1922–1970", role:"Leader of Zone III (Kabylie)", color:"#3E4A3A", type:"HISTORIC LEADER", isPerson:true,
-    wiki:"Krim_Belkacem",
-    summary:"A guerrilla fighter since 1947. He transformed Kabylie into a fortress of resistance and became the chief negotiator and signatory of the Évian Accords in March 1962. Assassinated in Frankfurt in 1970.",
-    summaryAr:"مقاتل عصابات منذ 1947. حوّل القبائل إلى حصن للمقاومة وأصبح المفاوض الرئيسي والموقّع على اتفاقيات إيفيان في مارس 1962. اغتيل في فرانكفورت عام 1970.",
-    quote:"الحرية لا تُعطى بل تُنتزع انتزاعاً" },
-  { name:"رابح بيطاط", latin:"Rabah Bitat", year:"1925–2000", role:"Leader of Zone IV (Algiers)", color:"#4A3B2A", type:"HISTORIC LEADER", isPerson:true,
-    wiki:"Rabah_Bitat",
-    summary:"Leader of Zone IV covering Algiers. Arrested in March 1955 as the first historic leader captured. After independence he served as President of the National Assembly.",
-    summaryAr:"قائد المنطقة الرابعة. اعتُقل في مارس 1955 كأول قائد تاريخي يُقبض عليه. بعد الاستقلال شغل منصب رئيس المجلس الشعبي الوطني.",
-    quote:"نحن لم نختر الحرب، الاستعمار هو من فرضها علينا" },
-  { name:"محمد بوضياف", latin:"Mohamed Boudiaf", year:"1919–1992", role:"Co-founder of FLN", color:"#5C4033", type:"HISTORIC LEADER", isPerson:true,
-    wiki:"Mohamed_Boudiaf",
-    summary:"Principal architect of the CRUA. He coordinated the November 1st attacks. Recalled as President in 1992, he was assassinated during a televised address in Annaba — 166 days into his presidency.",
-    summaryAr:"المهندس الرئيسي للجنة الثورية للوحدة والعمل. نسّق هجمات أول نوفمبر. استُدعي كرئيس للدولة عام 1992 واغتيل خلال خطاب متلفز في عنابة — بعد 166 يوماً فقط من توليه الرئاسة.",
-    quote:"لا يمكن للاستعمار أن يستمر، ولا يمكن للشعب أن يُهزم" },
-  { name:"حسين آيت أحمد", latin:"Hocine Aït Ahmed", year:"1926–2015", role:"External delegation", color:"#3D4A3E", type:"HISTORIC LEADER", isPerson:true,
-    wiki:"Hocine_Aït_Ahmed",
-    summary:"Joined the independence movement at 16. He secured international support at the United Nations. After independence he founded the FFS, Algeria's oldest opposition party.",
-    summaryAr:"انضم لحركة الاستقلال في سن 16. أمّن الدعم الدولي في الأمم المتحدة. بعد الاستقلال أسس حزب القوى الاشتراكية، أقدم حزب معارض في الجزائر.",
-    quote:"الديمقراطية هي الضمان الوحيد لوحدة الأمة" },
-  { name:"أحمد بن بلة", latin:"Ahmed Ben Bella", year:"1916–2012", role:"External delegation", color:"#4E3524", type:"HISTORIC LEADER", isPerson:true,
-    wiki:"Ahmed_Ben_Bella",
-    summary:"Decorated WWII veteran who became the chief arms procurer for the revolution. He became Algeria's first President in 1963 before being overthrown in a 1965 coup.",
-    summaryAr:"محارب مُوسّم في الحرب العالمية الثانية أصبح المسؤول الرئيسي عن تأمين الأسلحة للثورة. أصبح أول رئيس للجزائر المستقلة عام 1963 قبل الإطاحة به في انقلاب 1965.",
-    quote:"نحن جيل التضحية لتعيش الأجيال القادمة حرة" },
-  { name:"جميلة بوحيرد", latin:"Djamila Bouhired", year:"Born 1935", role:"Revolutionary heroine", color:"#6E4B3A", type:"REVOLUTIONARY HEROINE", isPerson:true,
-    wiki:"Djamila_Bouhired",
-    summary:"The most iconic female fighter. She endured severe torture but revealed nothing. Sentenced to death, an international solidarity campaign saved her life. She became a global symbol of anti-colonial resistance.",
-    summaryAr:"أشهر مقاتلة في الثورة. تحملت تعذيباً شديداً لكنها لم تُفصح عن أي معلومة. حُكم عليها بالإعدام لكن حملة تضامن دولية أنقذت حياتها. أصبحت رمزاً عالمياً لمقاومة الاستعمار.",
-    quote:"المرأة الجزائرية لم تكن خلف الثورة بل في قلبها" },
-  { name:"حسيبة بن بوعلي", latin:"Hassiba Ben Bouali", year:"1938–1957", role:"Battle of Algiers", color:"#4D5A40", type:"REVOLUTIONARY HEROINE", isPerson:true,
-    wiki:"Hassiba_Ben_Bouali",
-    summary:"A student who joined the armed struggle in the Casbah. On October 8, 1957, French paratroopers dynamited their hideout, killing Hassiba, Ali La Pointe, and Petit Omar. She was 19 years old.",
-    summaryAr:"طالبة انضمت للكفاح المسلح في القصبة. في 8 أكتوبر 1957 فجّر المظليون الفرنسيون مخبأهم فاستشهدت حسيبة وعلي لابوانت وعمر الصغير. كان عمرها 19 سنة فقط.",
-    quote:"الموت في سبيل الوطن حياة لا تنتهي" },
-  { name:"معركة الجزائر", latin:"Battle of Algiers", year:"1956–1957", role:"Urban guerrilla warfare", color:"#3A3A3A", type:"KEY EVENT", isPerson:false,
-    wiki:"Battle_of_Algiers_(1956–1957)", wikiAlt:["Casbah_of_Algiers","The_Battle_of_Algiers"], location:"Casbah of Algiers, Algeria — القصبة، الجزائر العاصمة",
-    summary:"A pivotal urban guerrilla campaign. France deployed the 10th Parachute Division with full police powers, leading to systematic torture and disappearances. France won tactically but exposed the moral bankruptcy of colonialism.",
-    summaryAr:"حملة حرب عصابات حضرية محورية. نشرت فرنسا فرقة المظليين العاشرة بصلاحيات مطلقة مما أدى إلى التعذيب المنهجي والاختفاء القسري. انتصرت فرنسا عسكرياً لكن كشفت للعالم الإفلاس الأخلاقي للاستعمار.",
-    quote:"معركة الجزائر خسرناها عسكريا لكن ربحناها سياسيا" },
-  { name:"مؤتمر الصومام", latin:"Soummam Congress", year:"August 1956", role:"Organizational structure", color:"#3E5040", type:"KEY EVENT", isPerson:false,
-    wiki:"Soummam_conference", wikiAlt:["Congrès_de_la_Soummam","Ifri_Ouzellaguen"], location:"Ifri Valley, Akbou, Kabylie — وادي إيفري، أقبو، القبائل",
-    summary:"The foundational congress held August 20, 1956 in the Ifri Valley. It created the CNRA and CCE, divided Algeria into six Wilayas, and established the primacy of political over military leadership.",
-    summaryAr:"المؤتمر التأسيسي الذي انعقد في 20 أوت 1956 في وادي إيفري. أنشأ المجلس الوطني للثورة ولجنة التنسيق والتنفيذ وقسّم الجزائر إلى ست ولايات وأرسى مبدأ أولوية السياسي على العسكري.",
-    quote:"أمة بدون تنظيم كجيش بدون قيادة" },
-  { name:"١ نوفمبر ١٩٥٤", latin:"1 November 1954", year:"Toussaint Rouge", role:"Start of the Revolution", color:"#8B2500", type:"KEY EVENT", isPerson:false,
-    wiki:"Toussaint_Rouge", wikiAlt:["Algerian_War","FLN_proclamation_of_1_November_1954"], location:"Across all of Algeria — عبر كامل التراب الوطني الجزائري",
-    summary:"The FLN launched approximately 70 coordinated attacks across Algeria. The Declaration of November 1st called for a sovereign, democratic Algerian state. The revolution had begun.",
-    summaryAr:"شنّت جبهة التحرير الوطني حوالي 70 هجوماً منسقاً عبر الجزائر. دعا بيان أول نوفمبر لدولة جزائرية ذات سيادة وديمقراطية. بدأت الثورة.",
-    quote:"من أجل الجزائر نحيا ومن أجل الجزائر نموت" },
-  { name:"٥ جويلية ١٩٦٢", latin:"5 July 1962", year:"Independence Day", role:"Algeria is free", color:"#006233", type:"KEY EVENT", isPerson:false,
-    wiki:"Algerian_War", wikiAlt:["Évian_Accords","Algerian_independence_referendum,_1962"], location:"All of Algeria — كامل الجزائر",
-    summary:"After 99.72% voted for independence, Algeria became sovereign on July 5, 1962 — 132 years after France invaded on the same date in 1830. The revolution cost an estimated 1.5 million lives.",
-    summaryAr:"بعد تصويت 99.72% لصالح الاستقلال أصبحت الجزائر دولة ذات سيادة في 5 جويلية 1962 — بعد 132 سنة من الاحتلال. كلّفت الثورة ما يقارب مليون ونصف شهيد.",
-    quote:"عاشت الجزائر حرة مستقلة" },
-  { name:"مظاهرات ١١ ديسمبر", latin:"11 December 1960", year:"Popular uprising", role:"Mass demonstrations", color:"#4A4030", type:"KEY EVENT", isPerson:false,
-    wiki:"December_1960_demonstrations_in_French_Algeria", wikiAlt:["Manifestations_de_décembre_1960","Algerian_War"], location:"Algiers, Oran, Constantine — الجزائر، وهران، قسنطينة",
-    summary:"Massive demonstrations erupted when de Gaulle visited Algeria. French forces opened fire on unarmed crowds, killing hundreds. The images shattered France's narrative and accelerated international recognition.",
-    summaryAr:"اندلعت مظاهرات ضخمة عند زيارة ديغول للجزائر. فتحت القوات الفرنسية النار على حشود عزلاء فقتلت المئات. حطّمت الصور رواية فرنسا وسرّعت الاعتراف الدولي بحق تقرير المصير.",
-    quote:"الشعب يريد الاستقلال" },
-  { name:"العقيد عميروش", latin:"Colonel Amirouche", year:"1926–1959", role:"Commander of Wilaya III", color:"#3B4A38", type:"MILITARY COMMANDER", isPerson:true,
-    wiki:"Amirouche_Aït_Hamouda", wikiAlt:["Amirouche_Aït_Hamouda"],
-    summary:"One of the most feared commanders. He transformed Wilaya III into a formidable resistance zone with schools and hospitals in liberated areas. Killed in an ambush on March 29, 1959 at age 33.",
-    summaryAr:"أحد أكثر القادة رهبة. حوّل الولاية الثالثة إلى منطقة مقاومة قوية وأنشأ مدارس ومستشفيات في المناطق المحررة. استشهد في كمين يوم 29 مارس 1959 عن عمر 33 سنة.",
-    quote:"إن لم ننتصر اليوم فسننتصر غداً" },
-  { name:"العقيد لطفي", latin:"Colonel Lotfi", year:"1934–1960", role:"Commander of Wilaya V", color:"#4A3828", type:"MILITARY COMMANDER", isPerson:true,
-    wiki:"Colonel_Lotfi",
-    summary:"Born Benali Boudghene, he took command of Wilaya V at just 23 — the youngest wilaya commander. Killed in combat on March 27, 1960 near the Moroccan border.",
-    summaryAr:"واسمه الحقيقي بنعلي بودغن. تولى قيادة الولاية الخامسة في سن 23 — أصغر قائد ولاية. استشهد في المعركة يوم 27 مارس 1960 قرب الحدود المغربية.",
-    quote:"الثورة أمانة في أعناقنا حتى النصر أو الشهادة" },
-  { name:"زيغود يوسف", latin:"Zighoud Youcef", year:"1921–1956", role:"Commander after Didouche", color:"#5C4A3A", type:"MILITARY COMMANDER", isPerson:true,
-    wiki:"Zighoud_Youcef",
-    summary:"He masterminded the Skikda offensive of August 20, 1955. French retaliation killed an estimated 12,000 Algerians — the war's turning point. Killed in battle September 25, 1956.",
-    summaryAr:"دبّر هجوم سكيكدة في 20 أوت 1955. أسفر الرد الفرنسي عن مقتل نحو 12,000 جزائري — نقطة تحول الحرب. استشهد في المعركة يوم 25 سبتمبر 1956.",
-    quote:"بعد ٢٠ أوت لن يكون هناك طريق للعودة" },
-  { name:"بن يوسف بن خدة", latin:"Benyoucef Benkhedda", year:"1920–2003", role:"President of GPRA", color:"#3A4A4A", type:"POLITICAL LEADER", isPerson:true,
-    wiki:"Benyoucef_Benkhedda",
-    summary:"Last President of the GPRA. He oversaw the Évian negotiations that secured Algeria's independence. After independence he was sidelined but spent his life documenting the revolution's true history.",
-    summaryAr:"آخر رئيس للحكومة المؤقتة. أشرف على مفاوضات إيفيان التي أمّنت استقلال الجزائر. بعد الاستقلال تم تهميشه لكنه أمضى حياته يوثّق التاريخ الحقيقي للثورة.",
-    quote:"التاريخ أمانة يجب أن يُروى كما كان لا كما نريده أن يكون" },
+const CARDS=[
+  {name:"لعربي بن مهيدي",latin:"Larbi Ben M'hidi",year:"1923–1957",role:"Leader of Zone V (Oran)",color:"#8B4513",type:"HISTORIC LEADER",isPerson:true,wiki:"Larbi_Ben_M'hidi",
+  summary:"One of the nine historic founders of the FLN and leader of Zone V. He commanded urban guerrilla operations during the Battle of Algiers. Captured in February 1957, he was tortured and assassinated by the French military who staged his death as a suicide.",
+  summaryAr:"أحد المؤسسين التسعة التاريخيين لجبهة التحرير الوطني وقائد المنطقة الخامسة. قاد عمليات حرب العصابات الحضرية خلال معركة الجزائر. اعتُقل في فبراير 1957 وتعرض للتعذيب ثم اغتيل.",
+  quote:"أعطونا طائراتكم ودباباتكم نعطيكم قفافنا"},
+  {name:"مصطفى بن بولعيد",latin:"Mostefa Ben Boulaïd",year:"1917–1956",role:"Leader of Zone I (Aurès)",color:"#6B3410",type:"HISTORIC LEADER",isPerson:true,wiki:"Mostefa_Ben_Boulaïd",
+  summary:"Known as the 'Father of the Revolution.' He sold his properties to buy the first weapons for November 1st, 1954. Killed by a booby-trapped radio planted by French intelligence.",
+  summaryAr:"يُلقب بـ'أبو الثورة'. باع ممتلكاته لشراء أول أسلحة الثورة. استشهد في 22 مارس 1956 بجهاز راديو مفخخ زرعته المخابرات الفرنسية.",
+  quote:"نموت ونحيا ونموت حتى تحيا الجزائر"},
+  {name:"ديدوش مراد",latin:"Didouche Mourad",year:"1927–1955",role:"Leader of Zone II",color:"#4A5530",type:"HISTORIC LEADER",isPerson:true,wiki:"Didouche_Mourad",wikiAlt:["Mourad_Didouche"],
+  directPhoto:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Didouche_Mourad_2.jpg/400px-Didouche_Mourad_2.jpg",
+  summary:"The youngest of the nine historic leaders. He fell in battle on January 18, 1955 — the first of the nine to die in combat, at 27 years old.",
+  summaryAr:"أصغر القادة التاريخيين التسعة. استشهد في المعركة يوم 18 جانفي 1955 — أول القادة التسعة سقوطاً في الميدان عن عمر 27 سنة.",
+  quote:"نحن ثوار قمنا لنحيا فلا بد أن نمضي في طريقنا"},
+  {name:"كريم بلقاسم",latin:"Krim Belkacem",year:"1922–1970",role:"Leader of Zone III (Kabylie)",color:"#3E4A3A",type:"HISTORIC LEADER",isPerson:true,wiki:"Krim_Belkacem",
+  summary:"A guerrilla fighter since 1947. Chief negotiator and signatory of the Évian Accords. Assassinated in Frankfurt in 1970.",
+  summaryAr:"مقاتل عصابات منذ 1947. المفاوض الرئيسي والموقّع على اتفاقيات إيفيان. اغتيل في فرانكفورت عام 1970.",
+  quote:"الحرية لا تُعطى بل تُنتزع انتزاعاً"},
+  {name:"رابح بيطاط",latin:"Rabah Bitat",year:"1925–2000",role:"Leader of Zone IV (Algiers)",color:"#4A3B2A",type:"HISTORIC LEADER",isPerson:true,wiki:"Rabah_Bitat",
+  summary:"Leader of Zone IV. First historic leader captured in March 1955. After independence he served as President of the National Assembly.",
+  summaryAr:"قائد المنطقة الرابعة. أول قائد تاريخي يُقبض عليه في مارس 1955. بعد الاستقلال شغل منصب رئيس المجلس الشعبي الوطني.",
+  quote:"نحن لم نختر الحرب، الاستعمار هو من فرضها علينا"},
+  {name:"محمد بوضياف",latin:"Mohamed Boudiaf",year:"1919–1992",role:"Co-founder of FLN",color:"#5C4033",type:"HISTORIC LEADER",isPerson:true,wiki:"Mohamed_Boudiaf",
+  summary:"Principal architect of the CRUA. Recalled as President in 1992, assassinated during a televised address — 166 days into his presidency.",
+  summaryAr:"المهندس الرئيسي للجنة الثورية. استُدعي كرئيس عام 1992 واغتيل خلال خطاب متلفز بعد 166 يوماً فقط من توليه الرئاسة.",
+  quote:"لا يمكن للاستعمار أن يستمر، ولا يمكن للشعب أن يُهزم"},
+  {name:"حسين آيت أحمد",latin:"Hocine Aït Ahmed",year:"1926–2015",role:"External delegation",color:"#3D4A3E",type:"HISTORIC LEADER",isPerson:true,wiki:"Hocine_Aït_Ahmed",
+  summary:"Joined the movement at 16. Founded the FFS, Algeria's oldest opposition party, and spent decades advocating for democracy and Berber rights.",
+  summaryAr:"انضم للحركة في سن 16. أسس حزب القوى الاشتراكية أقدم حزب معارض وقضى عقوداً في الدفاع عن الديمقراطية والحقوق الأمازيغية.",
+  quote:"الديمقراطية هي الضمان الوحيد لوحدة الأمة"},
+  {name:"أحمد بن بلة",latin:"Ahmed Ben Bella",year:"1916–2012",role:"External delegation",color:"#4E3524",type:"HISTORIC LEADER",isPerson:true,wiki:"Ahmed_Ben_Bella",
+  summary:"Decorated WWII veteran. Algeria's first President in 1963, overthrown in a 1965 coup.",
+  summaryAr:"محارب في الحرب العالمية الثانية. أول رئيس للجزائر المستقلة عام 1963 قبل الإطاحة به في انقلاب 1965.",
+  quote:"نحن جيل التضحية لتعيش الأجيال القادمة حرة"},
+  {name:"جميلة بوحيرد",latin:"Djamila Bouhired",year:"Born 1935",role:"Revolutionary heroine",color:"#6E4B3A",type:"HEROINE",isPerson:true,wiki:"Djamila_Bouhired",
+  summary:"The most iconic female fighter. Sentenced to death, an international campaign saved her life. She became a global symbol of anti-colonial resistance.",
+  summaryAr:"أشهر مقاتلة في الثورة. حُكم عليها بالإعدام لكن حملة دولية أنقذت حياتها. أصبحت رمزاً عالمياً لمقاومة الاستعمار.",
+  quote:"المرأة الجزائرية لم تكن خلف الثورة بل في قلبها"},
+  {name:"حسيبة بن بوعلي",latin:"Hassiba Ben Bouali",year:"1938–1957",role:"Battle of Algiers",color:"#4D5A40",type:"HEROINE",isPerson:true,wiki:"Hassiba_Ben_Bouali",
+  summary:"French paratroopers dynamited their hideout on October 8, 1957, killing Hassiba, Ali La Pointe, and Petit Omar. She was 19.",
+  summaryAr:"فجّر المظليون الفرنسيون مخبأهم في 8 أكتوبر 1957 فاستشهدت حسيبة وعلي لابوانت وعمر الصغير. كان عمرها 19 سنة.",
+  quote:"الموت في سبيل الوطن حياة لا تنتهي"},
+  {name:"معركة الجزائر",latin:"Battle of Algiers",year:"1956–1957",role:"Urban guerrilla warfare",color:"#3A3A3A",type:"KEY EVENT",isPerson:false,wiki:"Battle_of_Algiers_(1956–1957)",wikiAlt:["Casbah_of_Algiers","The_Battle_of_Algiers"],location:"Casbah of Algiers — القصبة، الجزائر العاصمة",
+  summary:"France deployed the 10th Parachute Division, leading to systematic torture and disappearances. France won tactically but exposed the moral bankruptcy of colonialism.",
+  summaryAr:"نشرت فرنسا فرقة المظليين العاشرة مما أدى إلى التعذيب المنهجي والاختفاء القسري. انتصرت فرنسا عسكرياً لكن كشفت الإفلاس الأخلاقي للاستعمار.",
+  quote:"معركة الجزائر خسرناها عسكريا لكن ربحناها سياسيا"},
+  {name:"مؤتمر الصومام",latin:"Soummam Congress",year:"August 1956",role:"Organizational structure",color:"#3E5040",type:"KEY EVENT",isPerson:false,wiki:"Soummam_conference",wikiAlt:["Congrès_de_la_Soummam","Ifri_Ouzellaguen"],location:"Ifri Valley, Akbou — وادي إيفري، أقبو، القبائل",
+  summary:"Held August 20, 1956. Created the CNRA and CCE, divided Algeria into six Wilayas, established the primacy of political over military leadership.",
+  summaryAr:"انعقد في 20 أوت 1956. أنشأ المجلس الوطني ولجنة التنسيق وقسّم الجزائر إلى ست ولايات وأرسى أولوية السياسي على العسكري.",
+  quote:"أمة بدون تنظيم كجيش بدون قيادة"},
+  {name:"١ نوفمبر ١٩٥٤",latin:"1 November 1954",year:"Toussaint Rouge",role:"Start of the Revolution",color:"#8B2500",type:"KEY EVENT",isPerson:false,wiki:"Toussaint_Rouge",wikiAlt:["Algerian_War","FLN_proclamation_of_1_November_1954"],location:"Across all of Algeria — عبر كامل التراب الوطني",
+  summary:"The FLN launched ~70 coordinated attacks. The Declaration of November 1st called for a sovereign Algerian state. The revolution had begun.",
+  summaryAr:"شنّت جبهة التحرير حوالي 70 هجوماً منسقاً. دعا بيان أول نوفمبر لدولة جزائرية ذات سيادة. بدأت الثورة.",
+  quote:"من أجل الجزائر نحيا ومن أجل الجزائر نموت"},
+  {name:"٥ جويلية ١٩٦٢",latin:"5 July 1962",year:"Independence Day",role:"Algeria is free",color:"#006233",type:"KEY EVENT",isPerson:false,wiki:"Algerian_War",wikiAlt:["Évian_Accords","Algerian_independence_referendum,_1962"],location:"All of Algeria — كامل الجزائر",
+  summary:"99.72% voted for independence. Algeria became sovereign on July 5, 1962 — 132 years after France invaded. The revolution cost ~1.5 million lives.",
+  summaryAr:"صوّت 99.72% لصالح الاستقلال. أصبحت الجزائر دولة ذات سيادة في 5 جويلية 1962 بعد 132 سنة من الاحتلال. كلّفت الثورة نحو مليون ونصف شهيد.",
+  quote:"عاشت الجزائر حرة مستقلة"},
+  {name:"مظاهرات ١١ ديسمبر",latin:"11 December 1960",year:"Popular uprising",role:"Mass demonstrations",color:"#4A4030",type:"KEY EVENT",isPerson:false,wiki:"December_1960_demonstrations_in_French_Algeria",wikiAlt:["Algerian_War"],location:"Algiers, Oran, Constantine — الجزائر، وهران، قسنطينة",
+  summary:"French forces opened fire on unarmed demonstrators, killing hundreds. The images shattered France's narrative worldwide.",
+  summaryAr:"فتحت القوات الفرنسية النار على متظاهرين عزلاء فقتلت المئات. حطّمت الصور رواية فرنسا أمام العالم.",
+  quote:"الشعب يريد الاستقلال"},
+  {name:"العقيد عميروش",latin:"Colonel Amirouche",year:"1926–1959",role:"Commander of Wilaya III",color:"#3B4A38",type:"COMMANDER",isPerson:true,wiki:"Amirouche_Aït_Hamouda",wikiAlt:["Amirouche"],
+  directPhoto:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Colonel_Amirouche.jpg/400px-Colonel_Amirouche.jpg",
+  summary:"One of the most feared commanders. Transformed Wilaya III into a formidable zone with schools and hospitals. Killed in ambush March 29, 1959 at 33.",
+  summaryAr:"أحد أكثر القادة رهبة. حوّل الولاية الثالثة إلى منطقة مقاومة قوية. استشهد في كمين يوم 29 مارس 1959 عن عمر 33 سنة.",
+  quote:"إن لم ننتصر اليوم فسننتصر غداً"},
+  {name:"العقيد لطفي",latin:"Colonel Lotfi",year:"1934–1960",role:"Commander of Wilaya V",color:"#4A3828",type:"COMMANDER",isPerson:true,wiki:"Colonel_Lotfi",wikiAlt:["Benali_Boudghene"],
+  summary:"Took command of Wilaya V at just 23 — the youngest wilaya commander. Killed in combat March 27, 1960 near the Moroccan border.",
+  summaryAr:"تولى قيادة الولاية الخامسة في سن 23 — أصغر قائد ولاية. استشهد يوم 27 مارس 1960 قرب الحدود المغربية.",
+  quote:"الثورة أمانة في أعناقنا حتى النصر أو الشهادة"},
+  {name:"زيغود يوسف",latin:"Zighoud Youcef",year:"1921–1956",role:"Commander after Didouche",color:"#5C4A3A",type:"COMMANDER",isPerson:true,wiki:"Zighoud_Youcef",wikiAlt:["Philippeville_massacre","1955_Philippeville_massacre"],
+  summary:"Masterminded the Skikda offensive of August 20, 1955. French retaliation killed ~12,000 Algerians — the war's turning point. Killed September 25, 1956.",
+  summaryAr:"دبّر هجوم سكيكدة في 20 أوت 1955. أسفر الرد الفرنسي عن مقتل نحو 12,000 جزائري — نقطة تحول الحرب. استشهد يوم 25 سبتمبر 1956.",
+  quote:"بعد ٢٠ أوت لن يكون هناك طريق للعودة"},
+  {name:"بن يوسف بن خدة",latin:"Benyoucef Benkhedda",year:"1920–2003",role:"President of GPRA",color:"#3A4A4A",type:"POLITICAL LEADER",isPerson:true,wiki:"Benyoucef_Benkhedda",
+  summary:"Last President of the GPRA. Oversaw the Évian negotiations. Spent his life documenting the revolution's true history.",
+  summaryAr:"آخر رئيس للحكومة المؤقتة. أشرف على مفاوضات إيفيان. أمضى حياته يوثّق التاريخ الحقيقي للثورة.",
+  quote:"التاريخ أمانة يجب أن يُروى كما كان لا كما نريده أن يكون"},
 ];
 
 // ── THREE.JS ──
@@ -346,13 +305,12 @@ const isMobile=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
 const container=document.getElementById('canvas-container');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x1e1b16);scene.fog=new THREE.FogExp2(0x1e1b16,0.035);
 const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,100);camera.position.set(0,0,12);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(window.innerWidth,window.innerHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?1.5:2));container.appendChild(renderer.domElement);
-const al=new THREE.AmbientLight(0xb8945a,0.5);scene.add(al);
+const renderer=new THREE.WebGLRenderer({antialias:!isMobile});renderer.setSize(window.innerWidth,window.innerHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?1.5:2));container.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0xb8945a,0.5));
 const pl1=new THREE.PointLight(0xb8945a,1.5,30);pl1.position.set(5,5,10);scene.add(pl1);
 const pl2=new THREE.PointLight(0x9a8260,0.8,25);pl2.position.set(-5,-3,8);scene.add(pl2);
 
-
-function mkTex(card){const c=document.createElement('canvas');c.width=512;c.height=640;const x=c.getContext('2d');const bg=x.createLinearGradient(0,0,0,640);bg.addColorStop(0,card.color);bg.addColorStop(1,dk(card.color,0.4));x.fillStyle=bg;x.fillRect(0,0,512,640);x.globalAlpha=0.08;for(let i=0;i<2000;i++){x.fillStyle=Math.random()>0.5?'#fff':'#000';x.fillRect(Math.random()*512,Math.random()*640,1,1)}x.globalAlpha=1;x.strokeStyle='rgba(201,169,110,0.3)';x.lineWidth=2;x.strokeRect(16,16,480,608);x.strokeRect(20,20,472,600);drawS(x,256,150,50,'#c9a96e',0.25);x.fillStyle='rgba(201,169,110,0.45)';x.font='12px sans-serif';x.textAlign='center';x.fillText((card.type||'').toUpperCase(),256,210);x.strokeStyle='rgba(201,169,110,0.4)';x.lineWidth=1;x.beginPath();x.moveTo(120,230);x.lineTo(392,230);x.stroke();x.fillStyle='#e8d5a8';x.font='bold 36px Amiri,serif';x.textBaseline='middle';x.fillText(card.name,256,285);x.fillStyle='rgba(201,169,110,0.9)';x.font='22px Playfair Display,serif';x.fillText(card.latin,256,335);x.fillStyle='rgba(201,169,110,0.6)';x.font='18px serif';x.fillText(card.year,256,385);x.strokeStyle='rgba(201,169,110,0.25)';x.beginPath();x.moveTo(160,415);x.lineTo(352,415);x.stroke();x.fillStyle='rgba(232,213,168,0.6)';x.font='15px serif';x.fillText(card.role,256,450);x.fillStyle='rgba(201,169,110,0.3)';x.font='11px sans-serif';x.fillText('— CLICK TO READ —',256,520);dC(x,30,30,1,1);dC(x,482,30,-1,1);dC(x,30,610,1,-1);dC(x,482,610,-1,-1);const t=new THREE.CanvasTexture(c);t.anisotropy=renderer.capabilities.getMaxAnisotropy();return t}
+function mkTex(card){const c=document.createElement('canvas');c.width=512;c.height=640;const x=c.getContext('2d');const bg=x.createLinearGradient(0,0,0,640);bg.addColorStop(0,card.color);bg.addColorStop(1,dk(card.color,0.4));x.fillStyle=bg;x.fillRect(0,0,512,640);x.globalAlpha=0.08;for(let i=0;i<1500;i++){x.fillStyle=Math.random()>0.5?'#fff':'#000';x.fillRect(Math.random()*512,Math.random()*640,1,1)}x.globalAlpha=1;x.strokeStyle='rgba(201,169,110,0.3)';x.lineWidth=2;x.strokeRect(16,16,480,608);x.strokeRect(20,20,472,600);drawS(x,256,150,50,'#c9a96e',0.25);x.fillStyle='rgba(201,169,110,0.45)';x.font='12px sans-serif';x.textAlign='center';x.fillText((card.type||'').toUpperCase(),256,210);x.strokeStyle='rgba(201,169,110,0.4)';x.lineWidth=1;x.beginPath();x.moveTo(120,230);x.lineTo(392,230);x.stroke();x.fillStyle='#e8d5a8';x.font='bold 36px Amiri,serif';x.textBaseline='middle';x.fillText(card.name,256,285);x.fillStyle='rgba(201,169,110,0.9)';x.font='22px Playfair Display,serif';x.fillText(card.latin,256,335);x.fillStyle='rgba(201,169,110,0.6)';x.font='18px serif';x.fillText(card.year,256,385);x.strokeStyle='rgba(201,169,110,0.25)';x.beginPath();x.moveTo(160,415);x.lineTo(352,415);x.stroke();x.fillStyle='rgba(232,213,168,0.6)';x.font='15px serif';x.fillText(card.role,256,450);x.fillStyle='rgba(201,169,110,0.3)';x.font=isMobile?'12px sans-serif':'11px sans-serif';x.fillText(isMobile?'— TAP TO READ —':'— CLICK TO READ —',256,520);dC(x,30,30,1,1);dC(x,482,30,-1,1);dC(x,30,610,1,-1);dC(x,482,610,-1,-1);const t=new THREE.CanvasTexture(c);t.anisotropy=renderer.capabilities.getMaxAnisotropy();return t}
 function drawS(x,cx,cy,r,col,a){x.globalAlpha=a;x.fillStyle=col;x.beginPath();for(let i=0;i<5;i++){const an=(i*4*Math.PI)/5-Math.PI/2;i===0?x.moveTo(cx+r*Math.cos(an),cy+r*Math.sin(an)):x.lineTo(cx+r*Math.cos(an),cy+r*Math.sin(an))}x.closePath();x.fill();x.globalAlpha=a*0.8;x.strokeStyle=col;x.lineWidth=2;x.beginPath();x.arc(cx,cy,r*0.35,0,Math.PI*2);x.stroke();x.globalAlpha=1}
 function dC(x,px,py,dx,dy){x.strokeStyle='rgba(201,169,110,0.25)';x.lineWidth=1;x.beginPath();x.moveTo(px,py+dy*20);x.lineTo(px,py);x.lineTo(px+dx*20,py);x.stroke()}
 function dk(h,a){const n=parseInt(h.replace('#',''),16);return`rgb(${Math.max(0,((n>>16)&0xff)*(1-a))|0},${Math.max(0,((n>>8)&0xff)*(1-a))|0},${Math.max(0,(n&0xff)*(1-a))|0})`}
@@ -364,11 +322,12 @@ function rmCh(cx,cy){const k=cK(cx,cy),g=chunks.get(k);if(!g)return;g.traverse(c
 function updCh(){const ccx=Math.round(camera.position.x/CS),ccy=Math.round(camera.position.y/CS);for(let dx=-RR;dx<=RR;dx++)for(let dy=-RR;dy<=RR;dy++)mkCh(ccx+dx,ccy+dy);for(const[k]of chunks){const[cx,cy]=k.split(',').map(Number);if(Math.abs(cx-ccx)>RR+1||Math.abs(cy-ccy)>RR+1)rmCh(cx,cy)}}
 function updFade(){const cp=camera.position;scene.traverse(c=>{if(!c.isMesh||!c.userData.material)return;const d=c.position.distanceTo(cp);let o=d>14?1-Math.min(1,(d-14)/8):1;c.userData.material.opacity+=(Math.max(0,Math.min(1,o))-c.userData.material.opacity)*0.08})}
 
-const pN=isMobile?80:200,pG=new THREE.BufferGeometry(),pP=new Float32Array(pN*3);
+const pN=isMobile?60:200,pG=new THREE.BufferGeometry(),pP=new Float32Array(pN*3);
 for(let i=0;i<pN;i++){pP[i*3]=(Math.random()-0.5)*40;pP[i*3+1]=(Math.random()-0.5)*40;pP[i*3+2]=(Math.random()-0.5)*20}
 pG.setAttribute('position',new THREE.BufferAttribute(pP,3));
 const pts=new THREE.Points(pG,new THREE.PointsMaterial({color:0xb8945a,size:0.03,transparent:true,opacity:0.3,sizeAttenuation:true}));scene.add(pts);
 
+// ── DETAIL ──
 const ray=new THREE.Raycaster(),mV=new THREE.Vector2();
 let panelOpen=false,fTarget=null,fProg=0,fStart=new THREE.Vector3(),fEnd=new THREE.Vector3(),cStart={x:0,y:0},wasDrag=false;
 const dOv=document.getElementById('detailOverlay'),dCl=document.getElementById('detailClose'),dBk=document.getElementById('detailBackdrop');
@@ -383,59 +342,81 @@ async function showDetail(i){
   document.getElementById('detailSummaryEn').textContent=c.summary;
   document.getElementById('detailSummaryAr').textContent=c.summaryAr;
   document.getElementById('detailQuote').textContent=`« ${c.quote} »`;
-
-  // Location for events
-  if(c.location){locEl.textContent=c.location;locEl.style.display='flex'}
-  else{locEl.style.display='none'}
-
-  // Reset photo
-  photo.classList.remove('loaded','is-person');
-  photo.src='';
-  loadTxt.textContent='Loading photo...';
+  if(c.location){locEl.textContent=c.location;locEl.style.display='flex'}else{locEl.style.display='none'}
+  photo.classList.remove('loaded','is-person');photo.src='';loadTxt.textContent='Loading photo...';
   if(c.isPerson) photo.classList.add('is-person');
-
-  dOv.classList.add('visible');
-  document.body.classList.add('panel-open');
-  panelOpen=true;
-
-  // Fetch photo from Wikipedia API (tries multiple slugs + French Wikipedia)
-  if(c.wiki){
-    const url=await fetchPhoto(c.wiki, c.wikiAlt);
-    if(url){
-      photo.src=url;
-      photo.onload=()=>{photo.classList.add('loaded');loadTxt.textContent=''};
-      photo.onerror=()=>{loadTxt.textContent='Photo unavailable'};
-    } else {
-      loadTxt.textContent='Photo unavailable';
-    }
-  }
+  dOv.classList.add('visible');document.body.classList.add('panel-open');panelOpen=true;
+  // Scroll panel to top
+  document.getElementById('detailPanel').scrollTop=0;
+  if(c.directPhoto){
+    // Try direct URL first (for cases where Wikipedia returns wrong photo)
+    photo.src=c.directPhoto;
+    photo.onload=()=>{photo.classList.add('loaded');loadTxt.textContent=''};
+    photo.onerror=async()=>{
+      // Fallback to Wikipedia API
+      if(c.wiki){const url=await fetchPhoto(c.wiki,c.wikiAlt);if(url){photo.src=url;photo.onload=()=>{photo.classList.add('loaded');loadTxt.textContent=''};photo.onerror=()=>{loadTxt.textContent='Photo unavailable'}}else{loadTxt.textContent='Photo unavailable'}}
+    };
+  } else if(c.wiki){const url=await fetchPhoto(c.wiki,c.wikiAlt);if(url){photo.src=url;photo.onload=()=>{photo.classList.add('loaded');loadTxt.textContent=''};photo.onerror=()=>{loadTxt.textContent='Photo unavailable'}}else{loadTxt.textContent='Photo unavailable'}}
 }
-
 function hideDetail(){dOv.classList.remove('visible');document.body.classList.remove('panel-open');panelOpen=false;fTarget=null}
 dCl.addEventListener('click',hideDetail);dBk.addEventListener('click',hideDetail);
-window.addEventListener('keydown',e=>{if(e.key==='Escape'&&panelOpen)hideDetail()});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(panelOpen)hideDetail();else if(dirOpen)closeDir()}});
 
-document.addEventListener('touchmove',e=>{if(!panelOpen)e.preventDefault()},{passive:false});
+// ── DIRECTORY ──
+let dirOpen=false;
+const dirEl=document.getElementById('directory'),dirBk=document.getElementById('dirBackdrop');
+function buildDir(){
+  const cont=document.getElementById('dirContent');
+  const groups={};
+  CARDS.forEach((c,i)=>{const t=c.type;if(!groups[t])groups[t]=[];groups[t].push({...c,idx:i})});
+  let html='';
+  for(const[type,items]of Object.entries(groups)){
+    html+=`<div class="directory-section">${type}</div>`;
+    items.forEach(c=>{html+=`<div class="directory-item" data-idx="${c.idx}"><div class="di-dot" style="background:${c.color}"></div><div class="di-info"><div class="di-name">${c.name}</div><div class="di-latin">${c.latin} · ${c.year}</div></div></div>`});
+  }
+  cont.innerHTML=html;
+  cont.querySelectorAll('.directory-item').forEach(el=>{el.addEventListener('click',()=>{const i=parseInt(el.dataset.idx);closeDir();showDetail(i)})});
+}
+function openDir(){dirEl.classList.add('open');dirBk.classList.add('visible');dirOpen=true}
+function closeDir(){dirEl.classList.remove('open');dirBk.classList.remove('visible');dirOpen=false}
+document.getElementById('dirClose').addEventListener('click',closeDir);
+dirBk.addEventListener('click',closeDir);
+
+// ── MOBILE SWIPE TO DISMISS ──
+let swipeStartY=0,swipePanel=document.getElementById('detailPanel');
+swipePanel.addEventListener('touchstart',e=>{if(swipePanel.scrollTop<=0)swipeStartY=e.touches[0].clientY},{passive:true});
+swipePanel.addEventListener('touchmove',e=>{if(swipePanel.scrollTop<=0){const dy=e.touches[0].clientY-swipeStartY;if(dy>80){hideDetail();swipeStartY=9999}}},{passive:true});
+
+// ── NAV ──
+document.addEventListener('touchmove',e=>{if(!panelOpen&&!dirOpen)e.preventDefault()},{passive:false});
 let drag=false,prev={x:0,y:0},vel={x:0,y:0,z:0};
-const DMP=0.92,DSP=isMobile?0.016:0.012;
+// SLOWER on mobile: higher damping (more friction), lower drag speed
+const DMP=isMobile?0.88:0.92;
+const DSP=isMobile?0.008:0.012;
 
-renderer.domElement.addEventListener('pointerdown',e=>{if(panelOpen)return;drag=true;prev={x:e.clientX,y:e.clientY};cStart={x:e.clientX,y:e.clientY};wasDrag=false});
-window.addEventListener('pointermove',e=>{if(!drag||panelOpen)return;vel.x-=(e.clientX-prev.x)*DSP;vel.y+=(e.clientY-prev.y)*DSP;prev={x:e.clientX,y:e.clientY};if(Math.abs(e.clientX-cStart.x)+Math.abs(e.clientY-cStart.y)>(isMobile?10:6))wasDrag=true});
-window.addEventListener('pointerup',e=>{drag=false;if(!wasDrag&&!panelOpen){mV.x=(e.clientX/window.innerWidth)*2-1;mV.y=-(e.clientY/window.innerHeight)*2+1;ray.setFromCamera(mV,camera);const ms=[];scene.traverse(c=>{if(c.isMesh&&c.userData.cardIndex!==undefined)ms.push(c)});const h=ray.intersectObjects(ms);if(h.length>0){const o=h[0].object;fTarget=o;fProg=0;fStart.copy(camera.position);fEnd.set(o.position.x,o.position.y,o.position.z+5);vel.x=0;vel.y=0;vel.z=0;setTimeout(()=>showDetail(o.userData.cardIndex),400)}}});
-renderer.domElement.addEventListener('wheel',e=>{if(panelOpen)return;e.preventDefault();vel.z+=e.deltaY*0.003},{passive:false});
+renderer.domElement.addEventListener('pointerdown',e=>{if(panelOpen||dirOpen)return;drag=true;prev={x:e.clientX,y:e.clientY};cStart={x:e.clientX,y:e.clientY};wasDrag=false});
+window.addEventListener('pointermove',e=>{if(!drag||panelOpen||dirOpen)return;vel.x-=(e.clientX-prev.x)*DSP;vel.y+=(e.clientY-prev.y)*DSP;prev={x:e.clientX,y:e.clientY};if(Math.abs(e.clientX-cStart.x)+Math.abs(e.clientY-cStart.y)>(isMobile?12:6))wasDrag=true});
+window.addEventListener('pointerup',e=>{drag=false;if(!wasDrag&&!panelOpen&&!dirOpen){mV.x=(e.clientX/window.innerWidth)*2-1;mV.y=-(e.clientY/window.innerHeight)*2+1;ray.setFromCamera(mV,camera);const ms=[];scene.traverse(c=>{if(c.isMesh&&c.userData.cardIndex!==undefined)ms.push(c)});const h=ray.intersectObjects(ms);if(h.length>0){const o=h[0].object;fTarget=o;fProg=0;fStart.copy(camera.position);fEnd.set(o.position.x,o.position.y,o.position.z+5);vel.x=0;vel.y=0;vel.z=0;setTimeout(()=>showDetail(o.userData.cardIndex),400)}}});
+renderer.domElement.addEventListener('wheel',e=>{if(panelOpen||dirOpen)return;e.preventDefault();vel.z+=e.deltaY*0.003},{passive:false});
 let lTD=0;
 renderer.domElement.addEventListener('touchstart',e=>{if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lTD=Math.sqrt(dx*dx+dy*dy)}},{passive:true});
-renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length===2&&!panelOpen){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,d=Math.sqrt(dx*dx+dy*dy);vel.z+=(lTD-d)*0.008;lTD=d}},{passive:true});
-const keys={};window.addEventListener('keydown',e=>{if(!panelOpen)keys[e.key]=true});window.addEventListener('keyup',e=>keys[e.key]=false);
-function pK(){if(panelOpen)return;const s=0.04;if(keys.ArrowLeft||keys.a)vel.x-=s;if(keys.ArrowRight||keys.d)vel.x+=s;if(keys.ArrowUp||keys.w)vel.y+=s;if(keys.ArrowDown||keys.s)vel.y-=s}
+renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length===2&&!panelOpen&&!dirOpen){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,d=Math.sqrt(dx*dx+dy*dy);vel.z+=(lTD-d)*0.006;lTD=d}},{passive:true});
+const keys={};window.addEventListener('keydown',e=>{if(!panelOpen&&!dirOpen)keys[e.key]=true});window.addEventListener('keyup',e=>keys[e.key]=false);
+function pK(){if(panelOpen||dirOpen)return;const s=0.04;if(keys.ArrowLeft||keys.a)vel.x-=s;if(keys.ArrowRight||keys.d)vel.x+=s;if(keys.ArrowUp||keys.w)vel.y+=s;if(keys.ArrowDown||keys.s)vel.y-=s}
+
+// ── TOOLBAR ACTIONS ──
+document.getElementById('btnHome').addEventListener('click',()=>{fTarget={position:{x:0,y:0,z:0}};fProg=0;fStart.copy(camera.position);fEnd.set(0,0,12);vel.x=0;vel.y=0;vel.z=0});
+document.getElementById('btnDir').addEventListener('click',openDir);
+document.getElementById('btnZoomIn').addEventListener('click',()=>{vel.z-=0.3});
+document.getElementById('btnZoomOut').addEventListener('click',()=>{vel.z+=0.3});
 
 const coordsEl=document.getElementById('coords'),clickHint=document.getElementById('clickHint');
 let time=0,hD=false;
 function animate(){requestAnimationFrame(animate);time+=0.01;
 if(!hD&&time>3){clickHint.classList.add('visible');hD=true;setTimeout(()=>clickHint.classList.remove('visible'),5000)}
 pK();
-if(fTarget&&fProg<1){fProg=Math.min(fProg+0.025,1);camera.position.lerpVectors(fStart,fEnd,1-Math.pow(1-fProg,3))}
-else if(!panelOpen){vel.x*=DMP;vel.y*=DMP;vel.z*=DMP;camera.position.x+=vel.x;camera.position.y+=vel.y;camera.position.z=Math.max(4,Math.min(20,camera.position.z+vel.z))}
+if(fTarget&&fProg<1){fProg=Math.min(fProg+(isMobile?0.018:0.025),1);camera.position.lerpVectors(fStart,fEnd,1-Math.pow(1-fProg,3))}
+else if(!panelOpen&&!dirOpen){vel.x*=DMP;vel.y*=DMP;vel.z*=DMP;camera.position.x+=vel.x;camera.position.y+=vel.y;camera.position.z=Math.max(4,Math.min(20,camera.position.z+vel.z))}
 pl1.position.set(camera.position.x+5,camera.position.y+5,camera.position.z+2);
 pl2.position.set(camera.position.x-5,camera.position.y-3,camera.position.z+1);
 pts.position.x+=(camera.position.x-pts.position.x)*0.01;pts.position.y+=(camera.position.y-pts.position.y)*0.01;
@@ -445,9 +426,12 @@ coordsEl.textContent=`X: ${camera.position.x.toFixed(2)}  Y: ${camera.position.y
 renderer.render(scene,camera)}
 
 window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight)});
-document.getElementById('enterBtn').addEventListener('click',()=>{document.getElementById('intro').classList.add('hidden');
-if(isMobile){document.getElementById('navHint').innerHTML='Swipe to explore · Pinch to zoom<br>Tap a card to read';document.getElementById('clickHint').textContent='Tap on a card to learn more'}
-animate()});
+document.getElementById('enterBtn').addEventListener('click',()=>{
+  document.getElementById('intro').classList.add('hidden');
+  document.getElementById('toolbar').style.display='flex';
+  if(isMobile){document.getElementById('navHint').innerHTML='Swipe to explore · Pinch to zoom<br>Tap a card to read';document.getElementById('clickHint').textContent='Tap on a card to learn more'}
+  buildDir();animate();
+});
 </script>
 </body>
 </html>
