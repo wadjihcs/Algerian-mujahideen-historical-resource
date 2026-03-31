@@ -34,7 +34,7 @@
   .intro-overlay .star{width:40px;height:40px;margin-bottom:24px}
 
   /* TOOLBAR */
-  .toolbar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:12;display:flex;gap:6px;pointer-events:auto}
+  .toolbar{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:12;display:flex;gap:6px;pointer-events:auto}
   .tool-btn{width:44px;height:44px;border-radius:50%;background:rgba(var(--bg-rgb),0.85);border:1px solid var(--panel-border);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s ease;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-size:18px}
   .tool-btn:hover,.tool-btn:active{background:rgba(184,148,90,0.2);border-color:var(--accent)}
   .tool-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -89,7 +89,7 @@
   .detail-divider{width:40px;height:1px;background:var(--panel-border);margin:20px 0}
   .detail-quote{font-family:'Amiri',serif;font-size:18px;color:var(--accent);direction:rtl;text-align:right;line-height:1.7;padding:14px 0;border-top:1px solid rgba(201,169,110,0.1);border-bottom:1px solid rgba(201,169,110,0.1);font-style:italic}
   .detail-star{display:flex;justify-content:center;margin-top:20px;opacity:0.3}
-  .click-hint{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:10;font-family:'Source Serif 4',serif;font-size:12px;color:var(--accent-faint);letter-spacing:2px;text-transform:uppercase;pointer-events:none;opacity:0;transition:opacity 0.5s ease}
+  .click-hint{position:fixed;bottom:126px;left:50%;transform:translateX(-50%);z-index:10;font-family:'Source Serif 4',serif;font-size:12px;color:var(--accent-faint);letter-spacing:2px;text-transform:uppercase;pointer-events:none;opacity:0;transition:opacity 0.5s ease}
   .click-hint.visible{opacity:1}
 
   /* TABLET */
@@ -104,7 +104,7 @@
     .detail-panel::before{content:'';display:block;width:40px;height:4px;background:rgba(201,169,110,0.3);border-radius:2px;margin:10px auto 0}
     .detail-header{padding:16px 24px}.detail-body{padding:16px 24px 28px}
     .detail-photo-wrap{height:200px}.detail-close{top:10px;right:10px}
-    .toolbar{bottom:16px}.tool-btn{width:40px;height:40px}
+    .toolbar{bottom:62px}.tool-btn{width:40px;height:40px}
     .directory{width:280px}
   }
   @media(max-width:480px){
@@ -117,8 +117,8 @@
     .detail-name-ar{font-size:22px}.detail-name-latin{font-size:15px}
     .detail-summary-en{font-size:13px}.detail-summary-ar{font-size:15px;padding:12px 14px}
     .detail-quote{font-size:16px}.date-badge{font-size:10px;padding:5px 10px}.coordinates{font-size:9px}
-    .click-hint{font-size:10px;bottom:65px}
-    .toolbar{bottom:12px;gap:4px}.tool-btn{width:38px;height:38px}
+    .click-hint{font-size:10px;bottom:110px}
+    .toolbar{bottom:52px;gap:4px}.tool-btn{width:38px;height:38px}
     .directory{width:260px}.directory-item .di-name{font-size:15px}
   }
   @media(max-width:360px){.logo h1{font-size:13px}.intro-overlay h2{font-size:22px}.detail-name-ar{font-size:20px}.detail-photo-wrap{height:130px}}
@@ -127,10 +127,10 @@
     .detail-overlay{align-items:center;justify-content:flex-end}
     .detail-panel{width:380px;max-width:50vw;max-height:94vh;margin-right:20px;border-radius:0;transform:translateX(100%)}
     .detail-overlay.visible .detail-panel{transform:translateX(0)}.detail-panel::before{display:none}.detail-photo-wrap{height:120px}
-    .toolbar{bottom:8px}
+    .toolbar{bottom:48px}
   }
   @media(pointer:coarse){body,body:active{cursor:default}}
-  @supports(padding:env(safe-area-inset-top)){.overlay-top{padding-top:max(14px,env(safe-area-inset-top))}.overlay-bottom{padding-bottom:max(12px,env(safe-area-inset-bottom))}.detail-panel{padding-bottom:env(safe-area-inset-bottom)}.toolbar{bottom:max(12px,calc(env(safe-area-inset-bottom) + 8px))}}
+  @supports(padding:env(safe-area-inset-top)){.overlay-top{padding-top:max(14px,env(safe-area-inset-top))}.overlay-bottom{padding-bottom:max(12px,env(safe-area-inset-bottom))}.detail-panel{padding-bottom:env(safe-area-inset-bottom)}.toolbar{bottom:max(52px,calc(env(safe-area-inset-bottom) + 52px))}}
 </style>
 </head>
 <body>
