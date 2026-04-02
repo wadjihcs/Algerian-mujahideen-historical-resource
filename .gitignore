@@ -1,15 +1,32 @@
-# JetBrains IDE files
+# ─── IDE & Editor Files ───
 .idea/
+.vscode/
 *.iws
 *.iml
 *.ipr
+*.swp
+*.swo
 
-# Windows system files
+# ─── AI / Code Assistant Files ───
+.qodo/
+.gemini/
+
+# ─── Windows System Files ───
 desktop.ini
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 
-# Node modules (if you use them later)
+# ─── macOS System Files ───
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ─── Node (if used later) ───
 node_modules/
+package-lock.json
 
-# Logs
+# ─── Logs ───
 *.log
+npm-debug.log*
