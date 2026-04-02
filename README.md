@@ -3,6 +3,8 @@
 # ★ أبطال الثورة الجزائرية ★
 ### Heroes of the Algerian Revolution
 
+![Algerian Heroes Banner](assets/banner.png)
+
 *An immersive infinite 3D canvas honoring the Mujahideen who fought for Algeria's independence (1954–1962)*
 
 **[🌐 Live Demo](https://algerian-heroes.surge.sh)** · **[📂 Repository](https://github.com/wadjihcs/Algerian-mujahideen-historical-resource)**
@@ -28,6 +30,8 @@ The infinite canvas concept is inspired by [this Tympanus/Codrops tutorial](http
 
 > *"ألقوا بالثورة إلى الشارع، سيحتضنها الشعب"*
 > — Larbi Ben M'hidi
+
+![Interactive 3D Canvas Demo](assets/demo.gif)
 
 ---
 
